@@ -1551,7 +1551,7 @@ class Game {
     for(const p of this.all()) p.update(dt,this);
     this.handleInteract(dt);
     this.checkGoals();
-    this.checkOOB();
+    if(this.state===ST.PLAY) this.checkOOB();
   }
 
   updatePositions(dt){
@@ -1727,6 +1727,7 @@ class Game {
     if(ball.owner) return;
     const spd=ball.vel.len();
     if(spd<8) return;
+    if(ball.pos.x<=0||ball.pos.x>=PW) return; // already past goal line — let checkGoals decide
 
     for(const team of this.teams){
       const gk=team.players[0];
@@ -1741,6 +1742,7 @@ class Game {
         if(Math.random()<Math.max(prob,0.08)){
           ball.vel.set(0,0); ball.z=0; ball.vz=0;
           ball.owner=gk; gk.hasBall=true;
+          gk.facing=new V(gk.team.atkDir,0); // face field so ball offset stays in bounds
           ball.lastOwner=gk; ball.lastKicker=null;
           gk.kickCD=GK_HOLD_T;
           this.state=ST.GK_HOLD; this.stateT=GK_HOLD_T;
@@ -1756,11 +1758,11 @@ class Game {
     const underBar = b.z < 2.44; // goal height is 2.44m
     if(b.pos.x<=0 && inG && underBar){
       const sc=this.teams.find(t=>t.atkDir===-1);
-      if(sc) this.scoreGoal(sc);
+      if(sc){ this.scoreGoal(sc); return; }
     }
     if(b.pos.x>=PW && inG && underBar){
       const sc=this.teams.find(t=>t.atkDir===1);
-      if(sc) this.scoreGoal(sc);
+      if(sc){ this.scoreGoal(sc); return; }
     }
     // Ball over the bar - goal kick
     if((b.pos.x<=0 || b.pos.x>=PW) && inG && !underBar && b.z >= 2.44){
