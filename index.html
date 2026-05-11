@@ -1632,6 +1632,11 @@ class Game {
     let closestD=CONTROL_R, closest=null;
     for(const p of this.all()){
       if(p.kickCD>0) continue;
+      // GK: shots (fast balls toward goal) are handled probabilistically by checkGKSave, not auto-grab
+      if(p.role===R.GK && ball.vel.len()>=8){
+        const toGoal=p.defGoal().sub(ball.pos);
+        if(toGoal.dot(ball.vel)>=0) continue;
+      }
       const d=p.pos.dist(ball.pos);
       // Bonus reach when moving in same direction as ball (chasing it down)
       let effectiveR = CONTROL_R;
