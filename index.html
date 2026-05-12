@@ -1506,7 +1506,8 @@ class Game {
       case ST.GK_HOLD:
         this.ball.update(dt);
         this.updatePositions(dt);
-        if(this.stateT<=0) this.state=ST.PLAY;
+        this.checkGoals(); // ball can cross line while GK holds
+        if(this.state===ST.GK_HOLD && this.stateT<=0) this.state=ST.PLAY;
         break;
 
       case ST.GOALKICK: if(this.stateT<=0) this.execGoalKick(); break;
@@ -1826,8 +1827,15 @@ class Game {
 
     // End lines
     if(b.pos.x<0||b.pos.x>PW){
-      const lt=b.lastOwner?b.lastOwner.team:this.teams[0];
       const atLeft=b.pos.x<0;
+      // Safety net: if ball is inside goal area and under the bar, it's a goal
+      const inGoal=b.pos.y>PH/2-GOAL_W/2 && b.pos.y<PH/2+GOAL_W/2 && b.z<2.44;
+      if(inGoal){
+        const sc=this.teams.find(t=>atLeft ? t.atkDir<0 : t.atkDir>0);
+        if(sc){ this.scoreGoal(sc); return; }
+      }
+
+      const lt=b.lastOwner?b.lastOwner.team:this.teams[0];
       const defTeam=this.teams.find(t=>(t.atkDir>0)===atLeft);
       if(!defTeam) return;
 
