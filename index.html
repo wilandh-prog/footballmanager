@@ -23,6 +23,35 @@ button.active { background: #4a9eff; border-color: #4a9eff; }
 canvas { display: block; }
 #controls-help { font-size: 10px; color: #888; white-space: nowrap; }
 #tooltip { position: absolute; background: rgba(0,0,0,0.85); color: #fff; padding: 4px 10px; border-radius: 4px; font-size: 12px; pointer-events: none; display: none; z-index: 15; }
+#event-log { position: fixed; top: 50px; right: 0; width: 188px; max-height: 320px; overflow: hidden; background: rgba(0,0,0,0.65); border-left: 1px solid rgba(255,255,255,0.08); z-index: 14; pointer-events: none; }
+.ev { padding: 3px 7px; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 11px; line-height: 1.4; color: #ccc; }
+.ev-t { color: #666; margin-right: 5px; font-size: 10px; }
+.ev1 { color: #4a9eff; }
+.ev2 { color: #ff4a4a; }
+.ev-goal { color: #ffd700; font-weight: bold; }
+.ev-pen { color: #ff9900; font-weight: bold; }
+#dice-panel { position: fixed; top: 50px; left: 0; width: 175px; max-height: calc(100vh - 55px); overflow-y: auto; background: rgba(0,0,0,0.72); border-right: 1px solid rgba(255,255,255,0.08); z-index: 14; padding: 8px 8px 10px; user-select: none; }
+#dice-panel h3 { color: #4a9eff; font-size: 12px; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 1px; }
+#dice-points { color: #ffd700; font-size: 15px; font-weight: bold; margin-bottom: 8px; }
+#dice-faces { display: flex; gap: 6px; justify-content: center; margin-bottom: 8px; }
+.die { width: 36px; height: 36px; background: #fff; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 22px; color: #222; box-shadow: 0 2px 6px rgba(0,0,0,0.5); transition: transform 0.1s; }
+.die.rolling { animation: dieroll 0.4s ease-out; }
+@keyframes dieroll { 0%{transform:rotate(-15deg) scale(1.2)} 50%{transform:rotate(10deg) scale(0.9)} 100%{transform:rotate(0deg) scale(1)} }
+#btn-roll { width: 100%; padding: 6px 0; background: #2a6; color: #fff; border: none; border-radius: 6px; font-size: 12px; font-weight: bold; cursor: pointer; margin-bottom: 10px; transition: background 0.2s, opacity 0.2s; }
+#btn-roll:disabled { background: #444; opacity: 0.6; cursor: not-allowed; }
+#btn-roll:not(:disabled):hover { background: #3b7; }
+.upg-cat { margin-bottom: 7px; }
+.upg-cat-label { color: #ffd700; font-size: 10px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 2px; }
+.upg-num { color: #888; font-weight: normal; }
+.upg-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 3px; }
+.upg-pos { color: #bbb; font-size: 10px; flex: 1; }
+.upg-buy { background: #1a4a8a; color: #7af; border: 1px solid #2a6aaa; border-radius: 4px; font-size: 10px; padding: 2px 5px; cursor: pointer; white-space: nowrap; transition: background 0.15s; }
+.upg-buy:disabled { background: #2a2a2a; color: #555; border-color: #444; cursor: not-allowed; }
+.upg-buy:not(:disabled):hover { background: #2a6aaa; }
+.upg-maxed { color: #4a9eff; font-size: 10px; font-weight: bold; }
+.upg-bar { display: flex; gap: 2px; margin: 0 3px; }
+.upg-pip { width: 7px; height: 7px; border-radius: 2px; background: #333; }
+.upg-pip.on { background: #4a9eff; }
 </style>
 </head>
 <body>
@@ -46,6 +75,18 @@ canvas { display: block; }
 <canvas id="pitch"></canvas>
 <div id="message-overlay"></div>
 <div id="tooltip"></div>
+<div id="event-log"></div>
+<div id="dice-panel">
+  <h3>Blue Upgrades</h3>
+  <div id="dice-points">Points: 0</div>
+  <div id="dice-faces">
+    <div class="die" id="die0">&#9856;</div>
+    <div class="die" id="die1">&#9856;</div>
+    <div class="die" id="die2">&#9856;</div>
+  </div>
+  <button id="btn-roll">ROLL DICE</button>
+  <div id="upg-list"></div>
+</div>
 
 <script>
 // ===================== CONFIG =====================
@@ -125,6 +166,139 @@ const THIRD_MAN_RUN_DIST = 12;       // meters forward for the run
 // Defensive transition
 const DEF_TRANSITION_WINDOW = 3.0;   // seconds in def transition mode
 const DEF_TRANSITION_DROP_SPD = 1.15; // speed multiplier when retreating
+
+// ===================== DICE / UPGRADE SYSTEM =====================
+const DICE_FACES = ['&#9856;','&#9857;','&#9858;','&#9859;','&#9860;','&#9861;'];
+const UPG_MAXLV = 3;
+const UPG_COSTS = { shot:[5,8,12], speed:[6,10,15], tackle:[5,8,12], stamina:[4,7,10] };
+const UPG_SHORT = { shot:'Shot', speed:'Speed', tackle:'Tackle', stamina:'Stamina' };
+
+// Per-player position names for Blue 4-4-2 (index = player num - 1)
+const PLAYER_POS_NAMES = [
+  null,           // #1  GK (skip)
+  'Left Back',    // #2
+  'Centre Back',  // #3
+  'Centre Back',  // #4
+  'Right Back',   // #5
+  'Left Winger',  // #6
+  'Central Mid',  // #7
+  'Central Mid',  // #8
+  'Right Winger', // #9
+  'Striker',      // #10
+  'Striker',      // #11
+];
+
+// Which upgrades apply to each player number
+const PLAYER_UPG_KEYS = [
+  null,
+  ['speed','tackle','stamina'],          // #2  Left Back
+  ['speed','tackle','stamina'],          // #3  Centre Back
+  ['speed','tackle','stamina'],          // #4  Centre Back
+  ['speed','tackle','stamina'],          // #5  Right Back
+  ['shot','speed','tackle','stamina'],   // #6  Left Winger
+  ['shot','speed','tackle','stamina'],   // #7  Central Mid
+  ['shot','speed','tackle','stamina'],   // #8  Central Mid
+  ['shot','speed','tackle','stamina'],   // #9  Right Winger
+  ['shot','speed','stamina'],            // #10 Striker
+  ['shot','speed','stamina'],            // #11 Striker
+];
+
+const diceState = {
+  points: 0,
+  cooldown: 0,
+  maxCooldown: 18,
+  playerLevels: {}, // { num: { shot:0, speed:0, ... } }
+};
+
+// Initialise per-player level objects
+for (let i=2; i<=11; i++) {
+  const keys = PLAYER_UPG_KEYS[i-1];
+  diceState.playerLevels[i] = {};
+  for (const k of keys) diceState.playerLevels[i][k] = 0;
+}
+
+// Get upgrade level for a specific player + stat (0 if not Blue or GK)
+function upg(p, key) {
+  if (!p || p.team.name!=='Blue' || p.role===R.GK) return 0;
+  return diceState.playerLevels[p.num]?.[key] || 0;
+}
+
+function rollDice() {
+  if (diceState.cooldown > 0) return;
+  const dice = [
+    Math.floor(Math.random()*6)+1,
+    Math.floor(Math.random()*6)+1,
+    Math.floor(Math.random()*6)+1,
+  ];
+  diceState.points += dice[0]+dice[1]+dice[2];
+  diceState.cooldown = diceState.maxCooldown;
+  for (let i=0;i<3;i++){
+    const el=document.getElementById('die'+i);
+    el.innerHTML=DICE_FACES[dice[i]-1];
+    el.classList.remove('rolling');
+    void el.offsetWidth;
+    el.classList.add('rolling');
+  }
+  renderDiceCooldown();
+  renderDicePanel();
+}
+
+function buyUpgrade(pnum, key) {
+  const lv = diceState.playerLevels[pnum]?.[key] || 0;
+  if (lv >= UPG_MAXLV) return;
+  const cost = UPG_COSTS[key][lv];
+  if (diceState.points < cost) return;
+  diceState.points -= cost;
+  diceState.playerLevels[pnum][key] = lv + 1;
+  renderDicePanel();
+}
+
+function renderUpgradeList() {
+  const list = document.getElementById('upg-list');
+  // Skip player #1 (GK)
+  const rows = [];
+  for (let num=2; num<=11; num++) {
+    const keys = PLAYER_UPG_KEYS[num-1];
+    const posName = PLAYER_POS_NAMES[num-1];
+    const lvs = diceState.playerLevels[num];
+    const upgRows = keys.map(key => {
+      const lv = lvs[key] || 0;
+      const maxed = lv >= UPG_MAXLV;
+      const cost = maxed ? 0 : UPG_COSTS[key][lv];
+      const canAfford = !maxed && diceState.points >= cost;
+      const pips = Array.from({length:UPG_MAXLV},(_,i)=>
+        `<div class="upg-pip${i<lv?' on':''}"></div>`).join('');
+      return `<div class="upg-row">
+        <span class="upg-pos">${UPG_SHORT[key]}</span>
+        <div class="upg-bar">${pips}</div>
+        ${maxed
+          ? `<span class="upg-maxed">MAX</span>`
+          : `<button class="upg-buy" data-pnum="${num}" data-key="${key}" ${canAfford?'':'disabled'}>${cost}pt</button>`}
+      </div>`;
+    }).join('');
+    rows.push(`<div class="upg-cat">
+      <div class="upg-cat-label">${posName} <span class="upg-num">#${num}</span></div>
+      ${upgRows}
+    </div>`);
+  }
+  list.innerHTML = rows.join('');
+}
+
+function renderDicePanel() {
+  document.getElementById('dice-points').textContent = `Points: ${diceState.points}`;
+  renderUpgradeList();
+}
+
+function renderDiceCooldown() {
+  const btn = document.getElementById('btn-roll');
+  if (diceState.cooldown > 0) {
+    btn.disabled = true;
+    btn.textContent = `ROLL (${Math.ceil(diceState.cooldown)}s)`;
+  } else {
+    btn.disabled = false;
+    btn.textContent = 'ROLL DICE';
+  }
+}
 
 // ===================== VEC2 =====================
 class V {
@@ -298,12 +472,15 @@ class Player {
     // --- STAMINA UPDATE ---
     const curSpd = this.vel.len();
     const drainMul = this.role === R.GK ? STAMINA_GK_FACTOR : 1.0;
+    const stamLv = upg(this, 'stamina');
+    const staminaDrainScale = 1 - stamLv*0.28;
+    const staminaRecoverScale = 1 + stamLv*0.40;
     if (curSpd > this.maxSpd * 0.8) {
-      this.stamina -= STAMINA_DRAIN_SPRINT * dt * drainMul;
+      this.stamina -= STAMINA_DRAIN_SPRINT * dt * drainMul * staminaDrainScale;
     } else if (curSpd > 2.0) {
-      this.stamina -= STAMINA_DRAIN_JOG * dt * drainMul;
+      this.stamina -= STAMINA_DRAIN_JOG * dt * drainMul * staminaDrainScale;
     } else {
-      this.stamina += STAMINA_RECOVER * dt;
+      this.stamina += STAMINA_RECOVER * dt * staminaRecoverScale;
     }
     this.stamina = clamp(this.stamina, 0, 1);
 
@@ -312,8 +489,22 @@ class Player {
     if (this.holdTimer > 0) { this.holdTimer -= dt; if (this.holdTimer <= 0) this.isHolding = false; }
     if (this.thirdManTimer > 0) { this.thirdManTimer -= dt; if (this.thirdManTimer <= 0) this.thirdManTarget = null; }
 
-    // Force re-decide on important events
+    // Continuously track incoming pass every frame (not just on decision ticks)
     const ball = game.ball;
+    if (this.action==='receive' && !ball.owner && ball.vel.len()>3 &&
+        ball.lastKicker && ball.lastKicker.team===this.team && !this.hasBall) {
+      const spd=ball.vel.len();
+      const stopPos=ballPredictPos(ball, spd/FRICTION);
+      const d=ptSegDist(this.pos, ball.pos, stopPos);
+      if (d < 10) {
+        const mySpd=this.role===R.GK?SPD_GK:this.maxSpd*(1+upg(this,'speed')*0.15);
+        const meetTime=Math.max(0.05, this.pos.dist(ball.pos)/(spd+mySpd));
+        this.targetPos=ballPredictPos(ball, meetTime);
+        if (this.dtimer<=0) this.dtimer=0.15; // suppress decision override
+      }
+    }
+
+    // Force re-decide on important events
     if (!ball.owner && !this.hasBall && ball.vel.len() > 2) {
       const d = this.pos.dist(ball.pos);
       if (d < 20 && this.dtimer > 0.15) this.dtimer = 0.05;
@@ -343,13 +534,15 @@ class Player {
     }
 
     const staminaSpeedFactor = lerp(STAMINA_MIN_SPD, 1.0, this.stamina);
+    const spdLv = this.role!==R.GK ? upg(this, 'speed') : 0;
+    const spdMul = 1 + spdLv*0.15;
     if (this.role===R.GK) {
       this.updateGK(dt, game);
     } else if (humanControl.isControlled(this) && game.state === ST.PLAY) {
       const dir = humanControl.getDirection();
       this.action = this.hasBall ? 'dribble' : 'move';
       if (dir) {
-        const spd = (this.hasBall ? SPD_DRIBBLE : this.maxSpd) * staminaSpeedFactor;
+        const spd = (this.hasBall ? SPD_DRIBBLE : this.maxSpd) * staminaSpeedFactor * spdMul;
         this.targetPos = this.pos.add(dir.mul(5));
         this.moveToward(this.targetPos, spd, dt);
         this.facing = dir;
@@ -359,7 +552,7 @@ class Player {
       }
     } else if (this.targetPos) {
       const baseSpd = this.hasBall ? SPD_DRIBBLE : this.maxSpd;
-      let spd = baseSpd * staminaSpeedFactor;
+      let spd = baseSpd * staminaSpeedFactor * spdMul;
       // Defensive transition: urgency boost
       if (!this.hasBall && game.isDefTransition(this.team) && this.action==='defend') {
         spd *= DEF_TRANSITION_DROP_SPD;
@@ -923,14 +1116,18 @@ class Player {
     const pwr=clamp(lerp(8, 50, ch), 8, 50);
     // More inaccuracy at extremes (too weak or overcharged)
     const accPenalty = ch > 0.9 ? (ch-0.9)*3 : 0;
-    const inacc=rand(-0.05-accPenalty,0.05+accPenalty)*d/15;
+    const shotLv = upg(this, 'shot');
+    const inaccMul = 1 - shotLv*0.30;
+    const pwrUpg = 1 + shotLv*0.18;
+    const inacc=rand(-0.05-accPenalty,0.05+accPenalty)*d/15*inaccMul;
     // Higher loft when overcharged
     let loft = rand(0, 1.5) + (ch > 0.85 ? (ch-0.85)*8 : 0);
     if (d < 15 && Math.random() < 0.12) loft = rand(3, 5); // chip
-    game.ball.kick(dir.norm().add(new V(0,inacc)), pwr, loft);
+    game.ball.kick(dir.norm().add(new V(0,inacc)), pwr*pwrUpg, loft);
     this.hasBall=false;
     game.ball.lastOwner=this; game.ball.lastKicker=this;
     this.kickCD=0.4;
+    game.addEvent(`Shot: ${game.pStr(this)}`);
   }
 
   pass(target, game, aimPos) {
@@ -939,20 +1136,21 @@ class Player {
     const pwr=clamp(PASS_LO+d*0.4, PASS_LO, PASS_HI);
     const lead = aimPos ? new V() : target.vel.mul(d/pwr*0.5); // no lead for through balls (already aimed ahead)
     const finalAim=aim0.add(lead);
+    const passPwr = clamp(PASS_LO+d*0.4, PASS_LO, PASS_HI);
     const inacc=rand(-0.03,0.03)*Math.min(d/25,1);
     const dir=finalAim.sub(this.pos).norm().add(new V(inacc,inacc));
     // Loft long passes and crosses
     let loft = 0;
     if (d > LOFT_DIST || (this.isWide() && this.nearOppBox() && target.role===R.FWD)) {
-      const flightTime = d / pwr;
+      const flightTime = d / passPwr;
       loft = 0.5 * GRAVITY * flightTime + rand(0, 2); // arc over defenders
     }
     // Through balls: slight loft to clear defenders
     if (aimPos && d > 12) {
-      const flightTime = d / pwr;
+      const flightTime = d / passPwr;
       loft = Math.max(loft, 0.5 * GRAVITY * flightTime * 0.6 + rand(0, 1));
     }
-    game.ball.kick(dir, pwr, loft);
+    game.ball.kick(dir, passPwr, loft);
 
     // === GIVE-AND-GO TRIGGER ===
     if (!aimPos && (this.role===R.MID || this.role===R.FWD) && (!this.inOwnHalf())) {
@@ -1430,7 +1628,18 @@ class Game {
     this.setPieceTaker=null;
     // Defensive transition
     this.defTransTeam=null; this.defTransTimer=0;
+    // Event log
+    this.events=[];
     this.prepKO(0);
+  }
+
+  teamCls(team){ return team===this.teams[0]?'ev1':'ev2'; }
+  pStr(p){ const c=this.teamCls(p.team); return `<span class="${c}">#${p.num} ${p.team.name}</span>`; }
+  addEvent(html){
+    const t=Math.floor(this.gameTime);
+    const ts=`${String(Math.floor(t/60)).padStart(2,'0')}:${String(t%60).padStart(2,'0')}`;
+    this.events.unshift({ts,html});
+    if(this.events.length>40) this.events.pop();
   }
 
   all(){return[...this.teams[0].players,...this.teams[1].players];}
@@ -1654,18 +1863,22 @@ class Game {
       for(const o of opps){
         if(o.role===R.GK && o.pos.dist(o.defGoal())>15) continue;
         const d=o.pos.dist(ball.owner.pos);
-        if(d<TACKLE_R && Math.random()<TACKLE_PCT){
+        const tackleLv = upg(o, 'tackle');
+        const tackleChance = TACKLE_PCT * (1 + tackleLv*0.6);
+        if(d<TACKLE_R && Math.random()<tackleChance){
           // Foul check
           if(Math.random()<FOUL_PCT){
             this.callFoul(ball.owner, o);
             return;
           }
           // Clean tackle
+          const tackled=ball.owner;
           ball.owner.hasBall=false;
           const dir=o.facing.clone();
           ball.kick(dir, 3+Math.random()*3);
           ball.lastOwner=o; ball.lastKicker=null;
           ball.justKicked=0.2;
+          this.addEvent(`Tackle: ${this.pStr(o)} on ${this.pStr(tackled)}`);
           break;
         }
       }
@@ -1744,14 +1957,16 @@ class Game {
       const d=gk.pos.dist(ball.pos);
       if(d<GK_DIVE){
         const diff=d/GK_DIVE;
-        const prob=GK_SAVE_BASE-diff*0.3-spd*0.008;
-        if(Math.random()<Math.max(prob,0.08)){
+        const shotLvGK = ball.lastKicker ? upg(ball.lastKicker, 'shot') : 0;
+        const prob=GK_SAVE_BASE-diff*0.3-spd*0.008-shotLvGK*0.09;
+        if(Math.random()<Math.max(prob,0.04)){
           ball.vel.set(0,0); ball.z=0; ball.vz=0;
           ball.owner=gk; gk.hasBall=true;
           gk.facing=new V(gk.team.atkDir,0); // face field so ball offset stays in bounds
           ball.lastOwner=gk; ball.lastKicker=null;
           gk.kickCD=GK_HOLD_T;
           this.state=ST.GK_HOLD; this.stateT=GK_HOLD_T;
+          this.addEvent(`Save: ${this.pStr(gk)}`);
           return;
         }
       }
@@ -1788,6 +2003,10 @@ class Game {
     team.score++;
     this.state=ST.GOAL; this.stateT=GOAL_WAIT;
     this.message='GOAL!'; this.lastGoalTeam=team;
+    const scorer=this.ball.lastOwner;
+    const cls=this.teamCls(team);
+    const scorerStr=scorer?` ${this.pStr(scorer)}`:'';
+    this.addEvent(`<span class="ev-goal">GOAL!</span>${scorerStr} <span class="${cls}">${team.name}</span>`);
     this.ball.pos.set(PW/2, PH/2); // Move ball to center immediately
     this.ball.owner=null; this.ball.vel.set(0,0); this.ball.z=0; this.ball.vz=0;
     for(const p of this.all()) p.hasBall=false;
@@ -1846,12 +2065,16 @@ class Game {
         this.restartPos=new V(atLeft?1:PW-1, b.pos.y<PH/2?1:PH-1);
         this.state=ST.CORNER;
         this.stateT=CORNER_SETUP;
+        const cc=this.teamCls(atkTeam);
+        this.addEvent(`Corner: <span class="${cc}">${atkTeam.name}</span>`);
       } else {
         // Goal kick
         this.restartTeam=defTeam;
         this.restartPos=new V(atLeft?GOAL_AREA_D:PW-GOAL_AREA_D, PH/2);
         this.state=ST.GOALKICK;
         this.stateT=RESTART_WAIT;
+        const gc=this.teamCls(defTeam);
+        this.addEvent(`Goal kick: <span class="${gc}">${defTeam.name}</span>`);
       }
       b.vel.set(0,0); b.z=0; b.vz=0; b.pos=this.restartPos.clone();
       for(const p of this.all()) p.hasBall=false; b.owner=null;
@@ -1884,10 +2107,12 @@ class Game {
       this.state=ST.PENALTY; this.stateT=PENALTY_SETUP;
       this.message='PENALTY!';
       this.setupPenalty();
+      this.addEvent(`<span class="ev-pen">PENALTY!</span> ${this.pStr(fouler)} fouled ${this.pStr(fouledPlayer)}`);
     } else {
       // FREE KICK
       this.state=ST.FREEKICK; this.stateT=FREEKICK_SETUP;
       this.setupFreeKick();
+      this.addEvent(`Foul: ${this.pStr(fouler)} on ${this.pStr(fouledPlayer)}`);
     }
   }
 
@@ -2403,6 +2628,7 @@ class Game {
     this.state=ST.HALF; this.stateT=3; this.message='HALF TIME';
     this.ball.vel.set(0,0); this.ball.z=0; this.ball.vz=0; this.ball.owner=null;
     for(const p of this.all()){ p.hasBall=false; p.stamina=clamp(p.stamina+0.3,0,1); }
+    this.addEvent(`--- Half time ${this.teams[0].score}-${this.teams[1].score} ---`);
   }
 
   startHalf2(){
@@ -2416,6 +2642,7 @@ class Game {
     this.state=ST.FULL; this.message='FULL TIME';
     this.ball.vel.set(0,0); this.ball.z=0; this.ball.vz=0; this.ball.owner=null;
     for(const p of this.all()) p.hasBall=false;
+    this.addEvent(`--- Full time ${this.teams[0].score}-${this.teams[1].score} ---`);
   }
 }
 
@@ -2424,6 +2651,7 @@ class Renderer {
   constructor(canvas,game){
     this.c=canvas; this.ctx=canvas.getContext('2d'); this.game=game;
     this.s=1; this.ox=0; this.oy=0;
+    this.trailMap=new Map();
     this.resize();
     window.addEventListener('resize',()=>this.resize());
   }
@@ -2524,6 +2752,27 @@ class Renderer {
       for(const p of team.players){
         const [px,py]=this.ts(p.pos.x,p.pos.y);
         const r=PLAYER_R*s;
+
+        // Speed trails for upgraded Blue team
+        const spdLv = upg(p, 'speed');
+        if (spdLv > 0) {
+          if (!this.trailMap.has(p)) this.trailMap.set(p, []);
+          const trail = this.trailMap.get(p);
+          const moving = p.vel.len() > 4;
+          if (moving) {
+            trail.unshift({x:px, y:py});
+            if (trail.length > 5) trail.pop();
+          } else if (trail.length) {
+            trail.pop();
+          }
+          for (let i=0; i<trail.length; i++) {
+            const alpha = (1-(i/trail.length))*0.35*(spdLv/3);
+            c.fillStyle=`rgba(80,200,255,${alpha.toFixed(2)})`;
+            c.beginPath();
+            c.arc(trail[i].x, trail[i].y, r*(1-i*0.18), 0, Math.PI*2);
+            c.fill();
+          }
+        }
 
         // Shadow
         c.fillStyle='rgba(0,0,0,0.3)';
@@ -2814,6 +3063,16 @@ document.addEventListener('keyup', (e) => {
   }
 });
 
+// Dice roll button
+document.getElementById('btn-roll').addEventListener('click', rollDice);
+// Event delegation for upgrade buy buttons (survives innerHTML rebuilds)
+document.getElementById('upg-list').addEventListener('click', e => {
+  const btn = e.target.closest('.upg-buy');
+  if (btn && !btn.disabled) buyUpgrade(parseInt(btn.dataset.pnum), btn.dataset.key);
+});
+renderDiceCooldown();
+renderDicePanel();
+
 // Control toggle button
 const controlBtn = document.getElementById('btn-control');
 controlBtn.addEventListener('click', () => {
@@ -2840,6 +3099,15 @@ function loop(ts){
   else msgOvl.classList.remove('show');
 
   renderer.draw();
+  const evLog=document.getElementById('event-log');
+  evLog.innerHTML=game.events.slice(0,12).map(e=>`<div class="ev"><span class="ev-t">${e.ts}</span>${e.html}</div>`).join('');
+  // Dice cooldown tick — only update the roll button text, never touch the upgrade list
+  if (diceState.cooldown > 0) {
+    const prevSec = Math.ceil(diceState.cooldown);
+    diceState.cooldown = Math.max(0, diceState.cooldown - dt);
+    const newSec = Math.ceil(diceState.cooldown);
+    if (newSec !== prevSec) renderDiceCooldown();
+  }
   requestAnimationFrame(loop);
 }
 requestAnimationFrame(ts=>{lastT=ts;requestAnimationFrame(loop);});
