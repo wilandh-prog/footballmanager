@@ -78,6 +78,74 @@ canvas { display: block; flex: 1; min-height: 0; }
 .plr-btn.selected { background: #1a4a8a; border-color: #4a9eff; color: #7af; }
 .upg-sel-name { color: #ffd700; font-size: 10px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 6px; margin-bottom: 5px; }
 canvas { touch-action: none; }
+
+/* ===== WORLD CUP OVERLAY ===== */
+#wc-overlay { position:fixed; inset:0; background:#080818; z-index:200; display:flex; flex-direction:column; overflow:hidden; color:#fff; font-family:'Segoe UI',Arial,sans-serif; }
+#wc-hdr { display:flex; align-items:center; gap:12px; padding:12px 20px; background:rgba(0,0,0,0.6); border-bottom:1px solid rgba(255,255,255,0.1); flex-shrink:0; }
+#wc-hdr-title { font-size:20px; font-weight:bold; color:#ffd700; }
+#wc-hdr-phase { font-size:13px; color:#aaa; margin-left:auto; }
+#wc-body { flex:1; overflow-y:auto; padding:14px 16px; }
+#wc-footer { display:flex; gap:10px; justify-content:center; flex-wrap:wrap; padding:10px 16px; border-top:1px solid rgba(255,255,255,0.1); flex-shrink:0; background:rgba(0,0,0,0.4); }
+.wc-btn { background:#1a4a8a; color:#7af; border:1px solid #2a6aaa; border-radius:6px; font-size:13px; padding:8px 18px; cursor:pointer; transition:background 0.15s; }
+.wc-btn:hover { background:#2a6aaa; }
+.wc-btn-green { background:#2a6; color:#fff; border-color:#3b7; }
+.wc-btn-green:hover { background:#3b7; }
+.wc-btn-gold { background:rgba(255,215,0,0.12); color:#ffd700; border-color:rgba(255,215,0,0.35); }
+.wc-btn-gold:hover { background:rgba(255,215,0,0.22); }
+/* Team select */
+.wc-select-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(110px,1fr)); gap:8px; }
+.wc-tcard { background:rgba(255,255,255,0.05); border:2px solid transparent; border-radius:8px; padding:10px 6px 8px; cursor:pointer; text-align:center; transition:all 0.15s; }
+.wc-tcard:hover { background:rgba(255,255,255,0.1); border-color:rgba(255,255,255,0.25); }
+.wc-tcard.wc-sel { border-color:#ffd700; background:rgba(255,215,0,0.1); }
+.wc-tcard-flag { font-size:30px; line-height:1; display:block; margin-bottom:5px; }
+.wc-tcard-name { font-size:11px; color:#ddd; font-weight:bold; line-height:1.3; }
+.wc-tcard-str { font-size:10px; color:#777; margin-top:3px; }
+/* Groups */
+.wc-groups-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(230px,1fr)); gap:10px; }
+.wc-group { background:rgba(255,255,255,0.04); border-radius:8px; overflow:hidden; }
+.wc-group-hdr { background:rgba(74,158,255,0.18); padding:5px 10px; font-size:11px; font-weight:bold; color:#4a9eff; letter-spacing:1px; text-transform:uppercase; display:flex; justify-content:space-between; align-items:center; }
+.wc-group table { width:100%; border-collapse:collapse; font-size:11px; }
+.wc-group th { padding:3px 6px; color:#666; font-weight:normal; text-align:center; }
+.wc-group th:first-child { text-align:left; }
+.wc-group td { padding:3px 6px; color:#ccc; text-align:center; border-top:1px solid rgba(255,255,255,0.05); }
+.wc-group td:first-child { text-align:left; max-width:90px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.wc-group tr.wc-adv td { background:rgba(74,158,255,0.07); }
+.wc-group tr.wc-ptm > td:first-child { color:#ffd700; font-weight:bold; }
+.wc-match-row { display:flex; align-items:center; gap:6px; padding:3px 8px; font-size:11px; border-top:1px solid rgba(255,255,255,0.05); }
+.wc-match-row.wc-ptmatch { background:rgba(255,215,0,0.05); }
+.wc-match-names { flex:1; color:#bbb; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
+.wc-match-score { color:#ffd700; font-weight:bold; min-width:30px; text-align:center; font-size:11px; }
+.wc-play-btn { background:#2a6; color:#fff; border:none; border-radius:3px; padding:2px 7px; font-size:10px; cursor:pointer; white-space:nowrap; }
+.wc-play-btn:hover { background:#3b7; }
+/* Knockout bracket */
+.wc-bracket { display:flex; gap:2px; min-width:max-content; padding-bottom:8px; }
+.wc-rcol { display:flex; flex-direction:column; justify-content:space-around; width:160px; padding:0 4px; }
+.wc-rcol-title { text-align:center; font-size:10px; color:#4a9eff; font-weight:bold; text-transform:uppercase; letter-spacing:1px; padding:4px 0 6px; border-bottom:1px solid rgba(74,158,255,0.25); margin-bottom:4px; }
+.wc-ko-card { background:rgba(255,255,255,0.05); border-radius:6px; overflow:hidden; margin:3px 0; border:1px solid rgba(255,255,255,0.07); }
+.wc-ko-row { display:flex; align-items:center; padding:5px 8px; font-size:11px; color:#bbb; border-top:1px solid rgba(255,255,255,0.06); }
+.wc-ko-row:first-child { border-top:none; }
+.wc-ko-row.wc-winner { background:rgba(255,215,0,0.08); color:#ffd700; font-weight:bold; }
+.wc-ko-row.wc-ptm { font-weight:bold; color:#fff; }
+.wc-ko-row-name { flex:1; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
+.wc-ko-row-score { font-size:11px; font-weight:bold; min-width:16px; text-align:right; color:#fff; }
+.wc-ko-act { text-align:center; padding:4px; border-top:1px solid rgba(255,255,255,0.08); }
+/* Matchday action bar */
+.wc-md-bar { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; background:rgba(255,255,255,0.04); border-radius:8px; padding:10px 14px; margin-bottom:14px; }
+.wc-md-info { font-size:13px; color:#ccc; }
+.wc-md-btns { display:flex; gap:8px; flex-wrap:wrap; }
+/* Champion banner */
+.wc-champion { text-align:center; padding:30px 20px; }
+.wc-champion-flag { font-size:80px; display:block; margin-bottom:12px; }
+.wc-champion-txt { font-size:28px; font-weight:bold; color:#ffd700; margin-bottom:8px; }
+.wc-champion-sub { font-size:15px; color:#aaa; }
+@media (max-width:700px) {
+  .wc-select-grid { grid-template-columns:repeat(auto-fill,minmax(85px,1fr)); gap:6px; }
+  .wc-tcard-flag { font-size:24px; }
+  .wc-tcard-name { font-size:10px; }
+  .wc-groups-grid { grid-template-columns:1fr; }
+  .wc-bracket { overflow-x:auto; }
+  .wc-rcol { width:140px; }
+}
 #toast-container { position: absolute; top: 8px; left: 50%; transform: translateX(-50%); z-index: 30; display: flex; flex-direction: column; align-items: center; gap: 5px; pointer-events: none; width: 92%; }
 .toast { background: rgba(0,0,0,0.82); color: #ccc; padding: 6px 16px; border-radius: 18px; font-size: 13px; line-height: 1.4; border: 1px solid rgba(255,255,255,0.14); white-space: nowrap; max-width: 100%; overflow: hidden; text-overflow: ellipsis; animation: toast-fade 3s ease forwards; }
 .toast-goal { border-color: rgba(255,215,0,0.5); background: rgba(20,15,0,0.88); }
@@ -146,7 +214,16 @@ canvas { touch-action: none; }
     <button class="speed-btn" data-speed="4">4x</button>
   </div>
   <button id="btn-control">Watch</button>
+  <button id="btn-wc">🏆 World Cup</button>
   <span id="controls-help">WASD move | Space shoot | E pass | Q lob | Tab switch</span>
+</div>
+<div id="wc-overlay" style="display:none">
+  <div id="wc-hdr">
+    <span id="wc-hdr-title">🏆 World Cup</span>
+    <span id="wc-hdr-phase"></span>
+  </div>
+  <div id="wc-body"></div>
+  <div id="wc-footer"></div>
 </div>
 <div id="tooltip"></div>
 <div id="main-layout">
@@ -3181,7 +3258,7 @@ const humanControl = {
 
 // ===================== MAIN =====================
 const canvas=document.getElementById('pitch');
-const game=new Game();
+let game=new Game();
 const renderer=new Renderer(canvas,game);
 humanControl.init(game);
 
@@ -3339,6 +3416,153 @@ function showToast(ev){
   setTimeout(()=>el.remove(),3000);
 }
 
+// ===================== WORLD CUP =====================
+const WC_TEAMS=[
+  {n:'Brazil',f:'🇧🇷',s:92},{n:'France',f:'🇫🇷',s:91},{n:'Argentina',f:'🇦🇷',s:90},
+  {n:'England',f:'🏴󠁧󠁢󠁥󠁮󠁧󠁿',s:88},{n:'Spain',f:'🇪🇸',s:87},{n:'Portugal',f:'🇵🇹',s:86},
+  {n:'Netherlands',f:'🇳🇱',s:85},{n:'Germany',f:'🇩🇪',s:84},
+  {n:'Belgium',f:'🇧🇪',s:83},{n:'Denmark',f:'🇩🇰',s:82},{n:'Croatia',f:'🇭🇷',s:81},
+  {n:'Switzerland',f:'🇨🇭',s:80},{n:'Mexico',f:'🇲🇽',s:78},{n:'Uruguay',f:'🇺🇾',s:77},
+  {n:'Morocco',f:'🇲🇦',s:76},{n:'USA',f:'🇺🇸',s:75},
+  {n:'Poland',f:'🇵🇱',s:74},{n:'Senegal',f:'🇸🇳',s:74},{n:'Serbia',f:'🇷🇸',s:73},
+  {n:'Japan',f:'🇯🇵',s:71},{n:'Wales',f:'🏴󠁧󠁢󠁷󠁬󠁳󠁿',s:71},{n:'South Korea',f:'🇰🇷',s:70},
+  {n:'Ecuador',f:'🇪🇨',s:68},{n:'Australia',f:'🇦🇺',s:67},
+  {n:'Ghana',f:'🇬🇭',s:65},{n:'Costa Rica',f:'🇨🇷',s:63},{n:'Canada',f:'🇨🇦',s:63},
+  {n:'Cameroon',f:'🇨🇲',s:62},{n:'Tunisia',f:'🇹🇳',s:61},{n:'Saudi Arabia',f:'🇸🇦',s:60},
+  {n:'Iran',f:'🇮🇷',s:59},{n:'Qatar',f:'🇶🇦',s:57},
+];
+const GS=[[0,1],[2,3],[0,2],[1,3],[0,3],[1,2]]; // group stage match pairs within each group
+const wc={on:false,phase:'SELECT',pt:-1,groups:[],stats:[],gm:[],koR:0,ko:[],pending:null,matchDone:false};
+
+function wcPoisson(l){let L=Math.exp(-l),k=0,p=1;do{k++;p*=Math.random();}while(p>L);return k-1;}
+function wcQSim(sA,sB){const d=(sA-sB)/100;return{ga:wcPoisson(Math.max(0.2,1.35+d*2.5)),gb:wcPoisson(Math.max(0.2,1.35-d*2.5))};}
+function wcStat(idx,gf,ga){const s=wc.stats[idx];s.gf+=gf;s.ga+=ga;if(gf>ga){s.w++;s.pts+=3;}else if(gf===ga){s.d++;s.pts++;}else s.l++;}
+function wcStand(g){return[...wc.groups[g]].sort((a,b)=>{const sa=wc.stats[a],sb=wc.stats[b];if(sb.pts!==sa.pts)return sb.pts-sa.pts;const gda=sa.gf-sa.ga,gdb=sb.gf-sb.ga;if(gdb!==gda)return gdb-gda;return sb.gf-sa.gf;});}
+function wcDraw(){
+  const pots=[[0,1,2,3,4,5,6,7],[8,9,10,11,12,13,14,15],[16,17,18,19,20,21,22,23],[24,25,26,27,28,29,30,31]].map(p=>[...p].sort(()=>Math.random()-0.5));
+  wc.groups=Array.from({length:8},(_,i)=>pots.map(p=>p[i]));
+  wc.stats=WC_TEAMS.map(()=>({w:0,d:0,l:0,gf:0,ga:0,pts:0}));
+  wc.gm=wc.groups.map(g=>GS.map(([i,j])=>({a:g[i],b:g[j],ga:0,gb:0,played:false})));
+}
+function wcCurMD(){
+  for(let md=0;md<3;md++){const u=[];for(let g=0;g<8;g++)for(let m=md*2;m<md*2+2;m++)if(!wc.gm[g][m].played)u.push({g,m});if(u.length)return{md:md+1,matches:u};}
+  return null;
+}
+function wcBuildKO(){
+  const st=Array.from({length:8},(_,i)=>wcStand(i));
+  const pairs=[[st[0][0],st[1][1]],[st[2][0],st[3][1]],[st[4][0],st[5][1]],[st[6][0],st[7][1]],[st[1][0],st[0][1]],[st[3][0],st[2][1]],[st[5][0],st[4][1]],[st[7][0],st[6][1]]];
+  wc.ko=[pairs.map(([a,b])=>({a,b,ga:0,gb:0,pens:null,played:false})),Array(4).fill(0).map(()=>({a:-1,b:-1,ga:0,gb:0,pens:null,played:false})),Array(2).fill(0).map(()=>({a:-1,b:-1,ga:0,gb:0,pens:null,played:false})),[{a:-1,b:-1,ga:0,gb:0,pens:null,played:false}]];
+  wc.koR=0;
+}
+function wcKOSim(a,b){let r=wcQSim(WC_TEAMS[a].s,WC_TEAMS[b].s);if(r.ga===r.gb){const e=wcQSim(WC_TEAMS[a].s,WC_TEAMS[b].s);r.ga+=Math.min(e.ga,1);r.gb+=Math.min(e.gb,1);}let pens=null;if(r.ga===r.gb){const w=Math.random()<0.5+(WC_TEAMS[a].s-WC_TEAMS[b].s)/200;pens=w?[5,3]:[3,5];}return{...r,pens};}
+function wcKOWinner(m){if(m.pens)return m.pens[0]>m.pens[1]?m.a:m.b;return m.ga>m.gb?m.a:m.b;}
+function wcAdvKO(){
+  const round=wc.ko[wc.koR];if(!round.every(m=>m.played))return;
+  if(wc.koR>=3){wc.phase='DONE';wcRender();return;}
+  const next=wc.ko[wc.koR+1];
+  for(let i=0;i<round.length;i+=2){const wa=wcKOWinner(round[i]),wb=wcKOWinner(round[i+1]);next[i/2]={a:wa,b:wb,ga:0,gb:0,pens:null,played:false};}
+  wc.koR++;
+}
+function wcT(i){return i>=0?WC_TEAMS[i]:{n:'TBD',f:'?',s:0};}
+function wcShow(){document.getElementById('wc-overlay').style.display='flex';}
+function wcHide(){document.getElementById('wc-overlay').style.display='none';}
+function wcSetPhase(t){document.getElementById('wc-hdr-phase').textContent=t;}
+
+function wcRender(){
+  const body=document.getElementById('wc-body'),footer=document.getElementById('wc-footer');
+  body.innerHTML='';footer.innerHTML='';body.onclick=null;
+  if(wc.phase==='SELECT')wcRenderSelect(body,footer);
+  else if(wc.phase==='GROUPS')wcRenderGroups(body,footer);
+  else if(wc.phase==='KO')wcRenderKO(body,footer);
+  else if(wc.phase==='DONE')wcRenderDone(body,footer);
+}
+function wcRenderSelect(body,footer){
+  wcSetPhase('Select Your Nation');
+  body.innerHTML=`<h2 style="color:#ffd700;margin-bottom:14px;font-size:16px">Choose a team to represent</h2><div class="wc-select-grid">${WC_TEAMS.map((t,i)=>`<div class="wc-tcard${wc.pt===i?' wc-sel':''}" data-i="${i}"><span class="wc-tcard-flag">${t.f}</span><div class="wc-tcard-name">${t.n}</div><div class="wc-tcard-str">${'★'.repeat(Math.round(t.s/17))}</div></div>`).join('')}</div>`;
+  body.onclick=e=>{const c=e.target.closest('.wc-tcard');if(!c)return;wc.pt=+c.dataset.i;body.querySelectorAll('.wc-tcard').forEach(x=>x.classList.toggle('wc-sel',+x.dataset.i===wc.pt));const b=footer.querySelector('.wc-btn-gold');if(b)b.disabled=false;};
+  footer.innerHTML=`<button class="wc-btn wc-btn-gold"${wc.pt<0?' disabled':''}>Confirm & Draw Groups →</button>`;
+  footer.querySelector('.wc-btn-gold').onclick=()=>{if(wc.pt<0)return;wcDraw();wc.phase='GROUPS';wcRender();};
+}
+function wcRenderGroups(body,footer){
+  const mdInfo=wcCurMD(),allDone=!mdInfo,md=mdInfo?mdInfo.md:3;
+  wcSetPhase(allDone?'Group Stage — Complete':`Group Stage — Matchday ${md} of 3`);
+  let hasOther=false;
+  if(mdInfo)mdInfo.matches.forEach(({g,m})=>{const x=wc.gm[g][m];if(x.a!==wc.pt&&x.b!==wc.pt)hasOther=true;});
+  const mdBar=allDone?'':
+    `<div class="wc-md-bar"><span class="wc-md-info">Matchday ${md}</span><div class="wc-md-btns">${hasOther?'<button class="wc-btn wc-btn-green" id="wc-sim-md">Simulate Others</button>':''}</div></div>`;
+  const groups=Array.from({length:8},(_,g)=>{
+    const st=wcStand(g);
+    const rows=st.map((ti,rank)=>{const t=WC_TEAMS[ti],s=wc.stats[ti];return`<tr class="${rank<2?'wc-adv':''}${ti===wc.pt?' wc-ptm':''}"><td>${t.f} ${t.n}</td><td>${s.w}</td><td>${s.d}</td><td>${s.l}</td><td>${s.gf}</td><td>${s.ga}</td><td><b>${s.pts}</b></td></tr>`;}).join('');
+    const matchSlice=allDone?wc.gm[g]:wc.gm[g].slice((md-1)*2,md*2);
+    const mRows=matchSlice.map((m,li)=>{
+      const mi=allDone?li:(md-1)*2+li,tA=wcT(m.a),tB=wcT(m.b),isPtm=m.a===wc.pt||m.b===wc.pt;
+      const score=m.played?`<span class="wc-match-score">${m.ga}–${m.gb}</span>`:'<span class="wc-match-score">vs</span>';
+      const btn=(!m.played&&isPtm)?`<button class="wc-play-btn" data-pg="${g}" data-pm="${mi}">▶ Play</button>`:'';
+      return`<div class="wc-match-row${isPtm?' wc-ptmatch':''}"><span class="wc-match-names">${tA.f}${tA.n} — ${tB.f}${tB.n}</span>${score}${btn}</div>`;
+    }).join('');
+    return`<div class="wc-group"><div class="wc-group-hdr">Group ${String.fromCharCode(65+g)}</div><table><thead><tr><th>Team</th><th>W</th><th>D</th><th>L</th><th>GF</th><th>GA</th><th>Pts</th></tr></thead><tbody>${rows}</tbody></table>${mRows}</div>`;
+  }).join('');
+  body.innerHTML=`${mdBar}<div class="wc-groups-grid">${groups}</div>`;
+  body.onclick=e=>{
+    const pb=e.target.closest('[data-pg]');
+    if(pb){const g=+pb.dataset.pg,m=+pb.dataset.pm,match=wc.gm[g][m],pIsA=match.a===wc.pt;wcStartLive(pIsA?match.a:match.b,pIsA?match.b:match.a,{type:'group',g,m,playerIsA:pIsA});return;}
+    if(e.target.id==='wc-sim-md'&&mdInfo){mdInfo.matches.forEach(({g,m})=>{const x=wc.gm[g][m];if(!x.played&&x.a!==wc.pt&&x.b!==wc.pt){const r=wcQSim(WC_TEAMS[x.a].s,WC_TEAMS[x.b].s);x.ga=r.ga;x.gb=r.gb;x.played=true;wcStat(x.a,r.ga,r.gb);wcStat(x.b,r.gb,r.ga);}});wcRender();}
+  };
+  if(allDone)footer.innerHTML=`<button class="wc-btn wc-btn-gold">Round of 16 →</button>`,footer.querySelector('.wc-btn-gold').onclick=()=>{wcBuildKO();wc.phase='KO';wcRender();};
+}
+const KO_NAMES=['Round of 16','Quarter-finals','Semi-finals','Final'];
+function wcRenderKO(body,footer){
+  wcSetPhase(KO_NAMES[wc.koR]);
+  const cols=wc.ko.map((round,ri)=>{
+    const cards=round.map((m,mi)=>{
+      const tA=wcT(m.a),tB=wcT(m.b),w=m.played?wcKOWinner(m):-1,pens=m.pens?` (${m.pens[0]}-${m.pens[1]} pen)` :'';
+      const rA=`<div class="wc-ko-row${m.played&&w===m.a?' wc-winner':''}${m.a===wc.pt?' wc-ptm':''}"><span class="wc-ko-row-name">${tA.f} ${tA.n}</span>${m.played?`<span class="wc-ko-row-score">${m.ga}</span>`:''}</div>`;
+      const rB=`<div class="wc-ko-row${m.played&&w===m.b?' wc-winner':''}${m.b===wc.pt?' wc-ptm':''}"><span class="wc-ko-row-name">${tB.f} ${tB.n}</span>${m.played?`<span class="wc-ko-row-score">${m.gb}${pens}</span>`:''}</div>`;
+      const act=ri===wc.koR&&!m.played&&m.a>=0?(m.a===wc.pt||m.b===wc.pt?`<div class="wc-ko-act"><button class="wc-play-btn" data-kr="${ri}" data-ki="${mi}">▶ Play</button></div>`:`<div class="wc-ko-act" style="font-size:10px;color:#444;padding:3px 0">not played</div>`):'';
+      return`<div class="wc-ko-card" style="border-color:${ri===wc.koR?'rgba(74,158,255,0.3)':'transparent'}">${rA}${rB}${act}</div>`;
+    }).join('');
+    return`<div class="wc-rcol"><div class="wc-rcol-title">${KO_NAMES[ri]}</div>${cards}</div>`;
+  }).join('');
+  const fin=wc.ko[3][0];
+  const champCol=fin&&fin.played?`<div class="wc-rcol" style="justify-content:center;align-items:center"><div class="wc-rcol-title">Champion</div><div style="font-size:40px;text-align:center;padding:8px">${wcT(wcKOWinner(fin)).f}</div><div style="font-size:12px;color:#ffd700;text-align:center">${wcT(wcKOWinner(fin)).n}</div></div>`:'';
+  body.innerHTML=`<div class="wc-bracket">${cols}${champCol}</div>`;
+  body.onclick=e=>{const pb=e.target.closest('[data-kr]');if(pb){const ri=+pb.dataset.kr,mi=+pb.dataset.ki,m=wc.ko[ri][mi],pIsA=m.a===wc.pt;wcStartLive(pIsA?m.a:m.b,pIsA?m.b:m.a,{type:'ko',round:ri,idx:mi,playerIsA:pIsA});}};
+  footer.innerHTML='';
+  const canSimOthers=wc.ko[wc.koR].some(m=>!m.played&&m.a!==wc.pt&&m.b!==wc.pt&&m.a>=0);
+  if(canSimOthers){const b=document.createElement('button');b.className='wc-btn wc-btn-green';b.textContent='Simulate Others';b.onclick=()=>{wc.ko[wc.koR].forEach(m=>{if(!m.played&&m.a>=0&&m.a!==wc.pt&&m.b!==wc.pt){const r=wcKOSim(m.a,m.b);Object.assign(m,r,{played:true});}});wcAdvKO();wcRender();};footer.appendChild(b);}
+  if(wc.ko[wc.koR].every(m=>m.played)&&wc.koR<3){const b=document.createElement('button');b.className='wc-btn wc-btn-gold';b.textContent=KO_NAMES[wc.koR+1]+' →';b.onclick=()=>{wcAdvKO();wcRender();};footer.appendChild(b);}
+  if(wc.koR===3&&fin&&fin.played){footer.innerHTML=`<button class="wc-btn wc-btn-gold" id="wc-see-champ">🏆 See Champion</button>`;document.getElementById('wc-see-champ').onclick=()=>{wc.phase='DONE';wcRender();};}
+}
+function wcRenderDone(body,footer){
+  const w=wcKOWinner(wc.ko[3][0]),t=wcT(w);
+  wcSetPhase('Tournament Complete');
+  body.innerHTML=`<div class="wc-champion"><span class="wc-champion-flag">${t.f}</span><div class="wc-champion-txt">🏆 ${t.n}</div><div class="wc-champion-sub">${w===wc.pt?'Congratulations — you are World Champions!':'World Cup Champions'}</div></div>`;
+  footer.innerHTML=`<button class="wc-btn" id="wc-new">New Tournament</button><button class="wc-btn wc-btn-green" id="wc-close">Close</button>`;
+  document.getElementById('wc-new').onclick=()=>{wc.phase='SELECT';wc.pt=-1;wcRender();};
+  document.getElementById('wc-close').onclick=()=>{wcHide();wc.on=false;};
+}
+function wcStartLive(teamA,teamB,pInfo){
+  game=new Game(); renderer.game=game; renderer.resize();
+  game.teams[0].name=WC_TEAMS[teamA].n; game.teams[1].name=WC_TEAMS[teamB].n;
+  [teamA,teamB].forEach((ti,side)=>{const sc=WC_TEAMS[ti].s/78;game.teams[side].players.forEach(p=>{p.maxSpd=Math.min(p.maxSpd*sc,11);});});
+  document.querySelector('.team-name.team1-color').textContent=WC_TEAMS[teamA].n;
+  document.querySelector('.team-name.team2-color').textContent=WC_TEAMS[teamB].n;
+  humanControl.player=null; humanControl.enabled=false; humanControl.init(game);
+  document.getElementById('btn-control').textContent='Watch';
+  document.getElementById('btn-control').classList.remove('active');
+  toastedCount=0; wc.pending=pInfo; wc.matchDone=false; wcHide();
+}
+function wcOnFulltime(){
+  if(wc.matchDone||!wc.pending)return; wc.matchDone=true;
+  const p=wc.pending; wc.pending=null;
+  const ga=game.teams[0].score,gb=game.teams[1].score;
+  const rA=p.playerIsA?ga:gb,rB=p.playerIsA?gb:ga;
+  if(p.type==='group'){const m=wc.gm[p.g][p.m];m.ga=rA;m.gb=rB;m.played=true;wcStat(m.a,rA,rB);wcStat(m.b,rB,rA);}
+  else{const m=wc.ko[p.round][p.idx];m.ga=rA;m.gb=rB;m.played=true;}
+  wcShow(); wcRender();
+}
+document.getElementById('btn-wc').onclick=()=>{wc.on=true;wcShow();wcRender();};
+
 let lastT=0;
 function loop(ts){
   const dt=Math.min((ts-lastT)/1000, 0.05);
@@ -3347,6 +3571,8 @@ function loop(ts){
   if (game.state === ST.PLAY || game.state === ST.GK_HOLD) {
     humanControl.autoSwitch(game);
   }
+
+  if(wc.pending&&game.state===ST.FULL&&!wc.matchDone)wcOnFulltime();
 
   const t=Math.floor(game.gameTime);
   timerEl.textContent=`${String(Math.floor(t/60)).padStart(2,'0')}:${String(t%60).padStart(2,'0')}`;
