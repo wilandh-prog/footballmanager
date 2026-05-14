@@ -3487,8 +3487,10 @@ function wcRenderSelect(body,footer){
 function wcRenderGroups(body,footer){
   const mdInfo=wcCurMD(),allDone=!mdInfo,md=mdInfo?mdInfo.md:3;
   wcSetPhase(allDone?'Group Stage — Complete':`Group Stage — Matchday ${md} of 3`);
+  let hasOther=false;
+  if(mdInfo)mdInfo.matches.forEach(({g,m})=>{const x=wc.gm[g][m];if(x.a!==wc.pt&&x.b!==wc.pt)hasOther=true;});
   const mdBar=allDone?'':
-    `<div class="wc-md-bar"><span class="wc-md-info">Matchday ${md}</span><div class="wc-md-btns">${mdInfo?'<button class="wc-btn wc-btn-green" id="wc-sim-md">Simulate All</button>':''}</div></div>`;
+    `<div class="wc-md-bar"><span class="wc-md-info">Matchday ${md}</span><div class="wc-md-btns">${hasOther?'<button class="wc-btn wc-btn-green" id="wc-sim-md">Simulate Others</button>':''}</div></div>`;
   const groups=Array.from({length:8},(_,g)=>{
     const st=wcStand(g);
     const rows=st.map((ti,rank)=>{const t=WC_TEAMS[ti],s=wc.stats[ti];return`<tr class="${rank<2?'wc-adv':''}${ti===wc.pt?' wc-ptm':''}"><td>${t.f} ${t.n}</td><td>${s.w}</td><td>${s.d}</td><td>${s.l}</td><td>${s.gf}</td><td>${s.ga}</td><td><b>${s.pts}</b></td></tr>`;}).join('');
@@ -3496,16 +3498,16 @@ function wcRenderGroups(body,footer){
     const mRows=matchSlice.map((m,li)=>{
       const mi=allDone?li:(md-1)*2+li,tA=wcT(m.a),tB=wcT(m.b),isPtm=m.a===wc.pt||m.b===wc.pt;
       const score=m.played?`<span class="wc-match-score">${m.ga}–${m.gb}</span>`:'<span class="wc-match-score">vs</span>';
-      return`<div class="wc-match-row${isPtm?' wc-ptmatch':''}"><span class="wc-match-names">${tA.f}${tA.n} — ${tB.f}${tB.n}</span>${score}</div>`;
+      const btn=(!m.played&&isPtm)?`<button class="wc-play-btn" data-pg="${g}" data-pm="${mi}">▶ Play</button>`:'';
+      return`<div class="wc-match-row${isPtm?' wc-ptmatch':''}"><span class="wc-match-names">${tA.f}${tA.n} — ${tB.f}${tB.n}</span>${score}${btn}</div>`;
     }).join('');
     return`<div class="wc-group"><div class="wc-group-hdr">Group ${String.fromCharCode(65+g)}</div><table><thead><tr><th>Team</th><th>W</th><th>D</th><th>L</th><th>GF</th><th>GA</th><th>Pts</th></tr></thead><tbody>${rows}</tbody></table>${mRows}</div>`;
   }).join('');
   body.innerHTML=`${mdBar}<div class="wc-groups-grid">${groups}</div>`;
   body.onclick=e=>{
-    if(e.target.id==='wc-sim-md'&&mdInfo){
-      mdInfo.matches.forEach(({g,m})=>{const x=wc.gm[g][m];if(!x.played){const r=wcQSim(WC_TEAMS[x.a].s,WC_TEAMS[x.b].s);x.ga=r.ga;x.gb=r.gb;x.played=true;wcStat(x.a,r.ga,r.gb);wcStat(x.b,r.gb,r.ga);}});
-      wcRender();
-    }
+    const pb=e.target.closest('[data-pg]');
+    if(pb){const g=+pb.dataset.pg,m=+pb.dataset.pm,match=wc.gm[g][m],pIsA=match.a===wc.pt;wcStartLive(pIsA?match.a:match.b,pIsA?match.b:match.a,{type:'group',g,m,playerIsA:pIsA});return;}
+    if(e.target.id==='wc-sim-md'&&mdInfo){mdInfo.matches.forEach(({g,m})=>{const x=wc.gm[g][m];if(!x.played&&x.a!==wc.pt&&x.b!==wc.pt){const r=wcQSim(WC_TEAMS[x.a].s,WC_TEAMS[x.b].s);x.ga=r.ga;x.gb=r.gb;x.played=true;wcStat(x.a,r.ga,r.gb);wcStat(x.b,r.gb,r.ga);}});wcRender();}
   };
   if(allDone)footer.innerHTML=`<button class="wc-btn wc-btn-gold">Round of 16 →</button>`,footer.querySelector('.wc-btn-gold').onclick=()=>{wcBuildKO();wc.phase='KO';wcRender();};
 }
@@ -3517,17 +3519,18 @@ function wcRenderKO(body,footer){
       const tA=wcT(m.a),tB=wcT(m.b),w=m.played?wcKOWinner(m):-1,pens=m.pens?` (${m.pens[0]}-${m.pens[1]} pen)` :'';
       const rA=`<div class="wc-ko-row${m.played&&w===m.a?' wc-winner':''}${m.a===wc.pt?' wc-ptm':''}"><span class="wc-ko-row-name">${tA.f} ${tA.n}</span>${m.played?`<span class="wc-ko-row-score">${m.ga}</span>`:''}</div>`;
       const rB=`<div class="wc-ko-row${m.played&&w===m.b?' wc-winner':''}${m.b===wc.pt?' wc-ptm':''}"><span class="wc-ko-row-name">${tB.f} ${tB.n}</span>${m.played?`<span class="wc-ko-row-score">${m.gb}${pens}</span>`:''}</div>`;
-      return`<div class="wc-ko-card" style="border-color:${ri===wc.koR?'rgba(74,158,255,0.3)':'transparent'}">${rA}${rB}</div>`;
+      const act=ri===wc.koR&&!m.played&&m.a>=0?(m.a===wc.pt||m.b===wc.pt?`<div class="wc-ko-act"><button class="wc-play-btn" data-kr="${ri}" data-ki="${mi}">▶ Play</button></div>`:`<div class="wc-ko-act" style="font-size:10px;color:#444;padding:3px 0">not played</div>`):'';
+      return`<div class="wc-ko-card" style="border-color:${ri===wc.koR?'rgba(74,158,255,0.3)':'transparent'}">${rA}${rB}${act}</div>`;
     }).join('');
     return`<div class="wc-rcol"><div class="wc-rcol-title">${KO_NAMES[ri]}</div>${cards}</div>`;
   }).join('');
   const fin=wc.ko[3][0];
   const champCol=fin&&fin.played?`<div class="wc-rcol" style="justify-content:center;align-items:center"><div class="wc-rcol-title">Champion</div><div style="font-size:40px;text-align:center;padding:8px">${wcT(wcKOWinner(fin)).f}</div><div style="font-size:12px;color:#ffd700;text-align:center">${wcT(wcKOWinner(fin)).n}</div></div>`:'';
   body.innerHTML=`<div class="wc-bracket">${cols}${champCol}</div>`;
-  body.onclick=null;
+  body.onclick=e=>{const pb=e.target.closest('[data-kr]');if(pb){const ri=+pb.dataset.kr,mi=+pb.dataset.ki,m=wc.ko[ri][mi],pIsA=m.a===wc.pt;wcStartLive(pIsA?m.a:m.b,pIsA?m.b:m.a,{type:'ko',round:ri,idx:mi,playerIsA:pIsA});}};
   footer.innerHTML='';
-  const hasUnplayed=wc.ko[wc.koR].some(m=>!m.played&&m.a>=0);
-  if(hasUnplayed){const b=document.createElement('button');b.className='wc-btn wc-btn-green';b.textContent='Simulate All';b.onclick=()=>{wc.ko[wc.koR].forEach(m=>{if(!m.played&&m.a>=0){const r=wcKOSim(m.a,m.b);Object.assign(m,r,{played:true});}});wcAdvKO();wcRender();};footer.appendChild(b);}
+  const canSimOthers=wc.ko[wc.koR].some(m=>!m.played&&m.a!==wc.pt&&m.b!==wc.pt&&m.a>=0);
+  if(canSimOthers){const b=document.createElement('button');b.className='wc-btn wc-btn-green';b.textContent='Simulate Others';b.onclick=()=>{wc.ko[wc.koR].forEach(m=>{if(!m.played&&m.a>=0&&m.a!==wc.pt&&m.b!==wc.pt){const r=wcKOSim(m.a,m.b);Object.assign(m,r,{played:true});}});wcAdvKO();wcRender();};footer.appendChild(b);}
   if(wc.ko[wc.koR].every(m=>m.played)&&wc.koR<3){const b=document.createElement('button');b.className='wc-btn wc-btn-gold';b.textContent=KO_NAMES[wc.koR+1]+' →';b.onclick=()=>{wcAdvKO();wcRender();};footer.appendChild(b);}
   if(wc.koR===3&&fin&&fin.played){footer.innerHTML=`<button class="wc-btn wc-btn-gold" id="wc-see-champ">🏆 See Champion</button>`;document.getElementById('wc-see-champ').onclick=()=>{wc.phase='DONE';wcRender();};}
 }
@@ -3538,6 +3541,30 @@ function wcRenderDone(body,footer){
   footer.innerHTML=`<button class="wc-btn" id="wc-new">New Tournament</button><button class="wc-btn wc-btn-green" id="wc-close">Close</button>`;
   document.getElementById('wc-new').onclick=()=>{wc.phase='SELECT';wc.pt=-1;wcRender();};
   document.getElementById('wc-close').onclick=()=>{wcHide();wc.on=false;};
+}
+function wcStartLive(teamA,teamB,pInfo){
+  game=new Game(); renderer.game=game; renderer.resize();
+  game.teams[0].name=WC_TEAMS[teamA].n; game.teams[1].name=WC_TEAMS[teamB].n;
+  [teamA,teamB].forEach((ti,side)=>{const sc=WC_TEAMS[ti].s/78;game.teams[side].players.forEach(p=>{p.maxSpd=Math.min(p.maxSpd*sc,11);});});
+  document.querySelector('.team-name.team1-color').textContent=WC_TEAMS[teamA].n;
+  document.querySelector('.team-name.team2-color').textContent=WC_TEAMS[teamB].n;
+  humanControl.player=null; humanControl.enabled=false; humanControl.init(game);
+  document.getElementById('btn-control').textContent='Watch';
+  document.getElementById('btn-control').classList.remove('active');
+  // Auto-run at 2× speed
+  game.speed=2; game.paused=false;
+  document.querySelectorAll('.speed-btn').forEach(b=>b.classList.toggle('active',b.dataset.speed==='2'));
+  document.getElementById('btn-pause').textContent='Pause';
+  toastedCount=0; wc.pending=pInfo; wc.matchDone=false; wcHide();
+}
+function wcOnFulltime(){
+  if(wc.matchDone||!wc.pending)return; wc.matchDone=true;
+  const p=wc.pending; wc.pending=null;
+  const ga=game.teams[0].score,gb=game.teams[1].score;
+  const rA=p.playerIsA?ga:gb,rB=p.playerIsA?gb:ga;
+  if(p.type==='group'){const m=wc.gm[p.g][p.m];m.ga=rA;m.gb=rB;m.played=true;wcStat(m.a,rA,rB);wcStat(m.b,rB,rA);}
+  else{const m=wc.ko[p.round][p.idx];m.ga=rA;m.gb=rB;m.played=true;}
+  wcShow(); wcRender();
 }
 document.getElementById('btn-wc').onclick=()=>{wc.on=true;wcShow();wcRender();};
 // Start with World Cup screen
@@ -3551,6 +3578,8 @@ function loop(ts){
   if (game.state === ST.PLAY || game.state === ST.GK_HOLD) {
     humanControl.autoSwitch(game);
   }
+
+  if(wc.pending&&game.state===ST.FULL&&!wc.matchDone)wcOnFulltime();
 
   const t=Math.floor(game.gameTime);
   timerEl.textContent=`${String(Math.floor(t/60)).padStart(2,'0')}:${String(t%60).padStart(2,'0')}`;
