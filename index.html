@@ -3551,6 +3551,10 @@ function wcStartLive(teamA,teamB,pInfo){
   humanControl.player=null; humanControl.enabled=false; humanControl.init(game);
   document.getElementById('btn-control').textContent='Watch';
   document.getElementById('btn-control').classList.remove('active');
+  // Auto-run at 2× speed
+  game.speed=2; game.paused=false;
+  document.querySelectorAll('.speed-btn').forEach(b=>b.classList.toggle('active',b.dataset.speed==='2'));
+  document.getElementById('btn-pause').textContent='Pause';
   toastedCount=0; wc.pending=pInfo; wc.matchDone=false; wcHide();
 }
 function wcOnFulltime(){
@@ -3563,6 +3567,8 @@ function wcOnFulltime(){
   wcShow(); wcRender();
 }
 document.getElementById('btn-wc').onclick=()=>{wc.on=true;wcShow();wcRender();};
+// Start with World Cup screen
+wc.on=true; wcShow(); wcRender();
 
 let lastT=0;
 function loop(ts){
