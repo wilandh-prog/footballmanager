@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <title>Football Match Simulation</title>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -77,6 +77,34 @@ canvas { display: block; flex: 1; min-height: 0; }
 .plr-btn:hover { background: #252550; border-color: #4a9eff; }
 .plr-btn.selected { background: #1a4a8a; border-color: #4a9eff; color: #7af; }
 .upg-sel-name { color: #ffd700; font-size: 10px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 6px; margin-bottom: 5px; }
+canvas { touch-action: none; }
+#mobile-tabs { display: none; }
+.mtab { flex: 1; padding: 8px 0; color: #888; font-size: 13px; cursor: pointer; border: none; background: transparent; border-top: 2px solid transparent; transition: color 0.15s; }
+.mtab.active { color: #4a9eff; border-top-color: #4a9eff; }
+@media (max-width: 700px) {
+  #ui { padding: 5px 10px; gap: 8px; }
+  #scoreboard { font-size: 16px; min-width: auto; }
+  #timer { font-size: 13px; }
+  #controls-help { display: none; }
+  #main-layout { flex-direction: column; }
+  #left-col { order: 3; width: 100%; height: 200px; overflow-y: auto; background: rgba(0,0,0,0.72); border-right: none; border-top: 1px solid rgba(255,255,255,0.08); }
+  #left-col.mob-hide { display: none; }
+  #right-col { order: 1; flex: none; width: 100%; }
+  #mobile-tabs { order: 2; display: flex; flex-shrink: 0; width: 100%; background: rgba(0,0,0,0.85); border-top: 1px solid rgba(255,255,255,0.1); }
+  #event-log { order: 3; width: 100%; height: 200px; border-left: none; border-top: 1px solid rgba(255,255,255,0.12); }
+  #event-log.mob-hide { display: none; }
+  #dice-panel { overflow-y: visible; }
+  #dice-faces { height: 100px; }
+  .die-wrap, .die-cube { width: 42px; height: 42px; }
+  .die-face { width: 42px; height: 42px; border-radius: 8px; padding: 5px; }
+  .die-dot { width: 7px; height: 7px; }
+  .die-front  { transform: translateZ(21px); }
+  .die-back   { transform: rotateY(180deg) translateZ(21px); }
+  .die-top    { transform: rotateX(90deg) translateZ(21px); }
+  .die-bottom { transform: rotateX(-90deg) translateZ(21px); }
+  .die-right  { transform: rotateY(90deg) translateZ(21px); }
+  .die-left   { transform: rotateY(-90deg) translateZ(21px); }
+}
 </style>
 </head>
 <body>
@@ -112,6 +140,10 @@ canvas { display: block; flex: 1; min-height: 0; }
   <div id="right-col">
     <canvas id="pitch"></canvas>
     <div id="message-overlay"></div>
+  </div>
+  <div id="mobile-tabs">
+    <button class="mtab active" data-panel="left-col">Upgrades</button>
+    <button class="mtab" data-panel="event-log">Events</button>
   </div>
   <div id="event-log"></div>
 </div>
@@ -2792,9 +2824,15 @@ class Renderer {
   }
   resize(){
     const uiH=document.getElementById('ui').offsetHeight;
-    const leftW=document.getElementById('left-col').offsetWidth;
-    const rightW=document.getElementById('event-log').offsetWidth;
-    const w=window.innerWidth-leftW-rightW, h=window.innerHeight-uiH;
+    let w,h;
+    if(window.innerWidth<=700){
+      const tabsH=document.getElementById('mobile-tabs').offsetHeight||36;
+      w=window.innerWidth; h=Math.max(window.innerHeight-uiH-tabsH-200,120);
+    } else {
+      const leftW=document.getElementById('left-col').offsetWidth;
+      const rightW=document.getElementById('event-log').offsetWidth;
+      w=window.innerWidth-leftW-rightW; h=window.innerHeight-uiH;
+    }
     this.c.width=w; this.c.height=h;
     this.s=Math.min(w/(PW+4), h/(PH+4));
     this.ox=(w-PW*this.s)/2; this.oy=(h-PH*this.s)/2;
@@ -3269,6 +3307,30 @@ controlBtn.addEventListener('click', () => {
   controlBtn.textContent = humanControl.enabled ? 'Control' : 'Watch';
   controlBtn.classList.toggle('active');
 });
+
+// Mobile tab switching
+(()=>{
+  function syncMobile(){
+    if(window.innerWidth>700){
+      document.getElementById('left-col').classList.remove('mob-hide');
+      document.getElementById('event-log').classList.remove('mob-hide');
+      return;
+    }
+    const active=document.querySelector('.mtab.active');
+    const panel=active?active.dataset.panel:'left-col';
+    document.getElementById('left-col').classList.toggle('mob-hide',panel!=='left-col');
+    document.getElementById('event-log').classList.toggle('mob-hide',panel!=='event-log');
+  }
+  document.getElementById('mobile-tabs').addEventListener('click',e=>{
+    const btn=e.target.closest('.mtab');
+    if(!btn)return;
+    document.querySelectorAll('.mtab').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    syncMobile();
+  });
+  window.addEventListener('resize',syncMobile);
+  syncMobile();
+})();
 
 let lastT=0;
 function loop(ts){
