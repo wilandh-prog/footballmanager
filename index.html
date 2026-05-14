@@ -58,6 +58,10 @@ canvas { display: block; flex: 1; min-height: 0; }
   100% { transform: translateY(0px) scale(1); }
 }
 .die-wrap.jumping { animation: die-jump 0.8s cubic-bezier(0.3,0.6,0.4,1) forwards; }
+.die-wrap.die-clickable { cursor: pointer; }
+.die-wrap.die-saved { filter: drop-shadow(0 0 7px #ffd700) drop-shadow(0 0 3px #ffd700); }
+.die-save-label { position: absolute; bottom: -18px; left: 50%; transform: translateX(-50%); font-size: 10px; color: #ffd700; font-weight: bold; letter-spacing: 1px; opacity: 0; transition: opacity 0.2s; pointer-events: none; white-space: nowrap; }
+.die-wrap.die-saved .die-save-label { opacity: 1; }
 #dice-combo { text-align: center; font-size: 13px; font-weight: bold; min-height: 20px; margin-bottom: 6px; opacity: 0; transition: opacity 0.4s, transform 0.2s; letter-spacing: 0.5px; }
 #btn-roll { width: 100%; padding: 9px 0; background: #2a6; color: #fff; border: none; border-radius: 7px; font-size: 14px; font-weight: bold; cursor: pointer; margin-bottom: 12px; transition: background 0.2s, opacity 0.2s; }
 #btn-roll:disabled { background: #444; opacity: 0.6; cursor: not-allowed; }
@@ -155,7 +159,6 @@ canvas { touch-action: none; }
   #ui { padding: 6px 12px; gap: 8px; flex-wrap: wrap; justify-content: center; }
   #half-label { display: none; }
   #controls-help { display: none; }
-  #btn-control { display: none; }
   #scoreboard { order: -1; width: 100%; font-size: 22px; min-width: auto; }
   #timer { font-size: 15px; }
   button { padding: 8px 16px; font-size: 14px; }
@@ -209,13 +212,10 @@ canvas { touch-action: none; }
   <span id="timer">00:00</span>
   <button id="btn-pause">Pause</button>
   <div id="speed-controls">
-    <button class="speed-btn active" data-speed="1">1x</button>
-    <button class="speed-btn" data-speed="2">2x</button>
-    <button class="speed-btn" data-speed="4">4x</button>
+    <button class="speed-btn" data-speed="1">1x</button>
+    <button class="speed-btn active" data-speed="1.5">1.5x</button>
+    <button class="speed-btn" data-speed="3">3x</button>
   </div>
-  <button id="btn-control">Watch</button>
-  <button id="btn-wc">🏆 World Cup</button>
-  <span id="controls-help">WASD move | Space shoot | E pass | Q lob | Tab switch</span>
 </div>
 <div id="wc-overlay" style="display:none">
   <div id="wc-hdr">
@@ -329,7 +329,7 @@ const DEF_TRANSITION_DROP_SPD = 1.15; // speed multiplier when retreating
 const DOT_PATTERNS = { 1:[5], 2:[1,9], 3:[3,5,7], 4:[1,3,7,9], 5:[1,3,5,7,9], 6:[1,4,7,3,6,9] };
 
 // rotateX / rotateY to bring each face toward the viewer
-const DIE_FACE_ROT = { 1:[0,0], 2:[-90,0], 3:[0,90], 4:[0,-90], 5:[90,0], 6:[0,180] };
+const DIE_FACE_ROT = { 1:[0,0], 2:[-90,0], 3:[0,-90], 4:[0,90], 5:[90,0], 6:[0,180] };
 
 function makeFaceDots(n) {
   const cells = Array(9).fill('');
@@ -350,9 +350,13 @@ function initDice3D() {
         <div class="die-face die-right">${makeFaceDots(3)}</div>
         <div class="die-face die-left">${makeFaceDots(4)}</div>
       </div>
+      <div class="die-save-label">SAVE</div>
     </div>`;
   }
   container.innerHTML = html;
+  for (let i = 0; i < 3; i++) {
+    document.getElementById(`die${i}`).addEventListener('click', () => handleDieClick(i));
+  }
 }
 
 function animateDie3D(idx, value, delay) {
@@ -373,7 +377,7 @@ function animateDie3D(idx, value, delay) {
   }, delay);
 }
 const UPG_MAXLV = 3;
-const UPG_COSTS = { shot:[5,8,12], speed:[6,10,15], tackle:[5,8,12], stamina:[4,7,10] };
+const UPG_COSTS = { shot:[35,70,120], speed:[40,80,130], tackle:[35,70,120], stamina:[30,60,100] };
 const UPG_SHORT = { shot:'Shot', speed:'Speed', tackle:'Tackle', stamina:'Stamina' };
 
 // Per-player position names for Blue 4-4-2 (index = player num - 1)
@@ -409,9 +413,11 @@ const PLAYER_UPG_KEYS = [
 const diceState = {
   points: 0,
   cooldown: 0,
-  maxCooldown: 18,
+  maxCooldown: 4,
   playerLevels: {}, // { num: { shot:0, speed:0, ... } }
   selectedPlayer: 2,
+  lastRoll: null,
+  savedIdx: null,
 };
 
 // Initialise per-player level objects
@@ -434,11 +440,11 @@ function checkCombo(dice) {
   const triple = entries.find(e=>e.c===3);
   const pair   = entries.find(e=>e.c===2);
   if (triple) {
-    if (triple.v===6) return { label:'JACKPOT! ⚡', bonus:30, color:'#ff0' };
-    return { label:`THREE ${triple.v}s!`, bonus:16, color:'#f80' };
+    if (triple.v===6) return { label:'JACKPOT! ⚡', bonus:150, color:'#ff0' };
+    return { label:`THREE ${triple.v}s!`, bonus:80, color:'#f80' };
   }
   if (pair) {
-    return { label:`PAIR of ${pair.v}s`, bonus:6, color:'#4f8' };
+    return { label:`PAIR of ${pair.v}s`, bonus:35, color:'#4f8' };
   }
   return null;
 }
@@ -454,23 +460,52 @@ function showCombo(combo) {
   setTimeout(()=>{ el.style.opacity='0'; }, 3000);
 }
 
+function handleDieClick(idx) {
+  if (!diceState.lastRoll) return;
+  diceState.savedIdx = (diceState.savedIdx === idx) ? null : idx;
+  updateSaveUI();
+  renderDiceCooldown();
+}
+
+function updateSaveUI() {
+  const hasRoll = !!diceState.lastRoll;
+  for (let i = 0; i < 3; i++) {
+    const wrap = document.getElementById(`die${i}`);
+    if (!wrap) continue;
+    wrap.classList.toggle('die-clickable', hasRoll);
+    wrap.classList.toggle('die-saved', diceState.savedIdx === i);
+  }
+}
+
 function rollDice() {
   if (diceState.cooldown > 0) return;
+  const prevSavedIdx = diceState.savedIdx;
+  const prevRoll = diceState.lastRoll;
+
   const dice = [
     Math.floor(Math.random()*6)+1,
     Math.floor(Math.random()*6)+1,
     Math.floor(Math.random()*6)+1,
   ];
+  if (prevSavedIdx !== null && prevRoll) {
+    dice[prevSavedIdx] = prevRoll[prevSavedIdx];
+  }
+
+  diceState.lastRoll = dice;
+  diceState.savedIdx = null;
+
   const base = dice[0]+dice[1]+dice[2];
   const combo = checkCombo(dice);
   const bonus = combo ? combo.bonus : 0;
   diceState.points += base + bonus;
   diceState.cooldown = diceState.maxCooldown;
-  for (let i=0;i<3;i++){
+
+  for (let i = 0; i < 3; i++) {
+    if (i === prevSavedIdx) continue;
     animateDie3D(i, dice[i], i*80);
   }
-  // Show combo message after dice land
-  setTimeout(()=>showCombo(combo), 820);
+  setTimeout(() => showCombo(combo), 820);
+  setTimeout(() => updateSaveUI(), 860);
   renderDiceCooldown();
   renderDicePanel();
 }
@@ -538,7 +573,7 @@ function renderDiceCooldown() {
     btn.textContent = `ROLL (${Math.ceil(diceState.cooldown)}s)`;
   } else {
     btn.disabled = false;
-    btn.textContent = 'ROLL DICE';
+    btn.textContent = diceState.savedIdx !== null ? 'ROLL (1 held)' : 'ROLL DICE';
   }
 }
 
@@ -1862,7 +1897,7 @@ class Game {
       new Team('Red','#ff4a4a','#cf2a2a',F433,-1),
     ];
     this.state=ST.PRE; this.stateT=0; this.half=1;
-    this.gameTime=0; this.speed=1; this.paused=false;
+    this.gameTime=0; this.speed=1.5; this.paused=false;
     this.restartTeam=null; this.restartPos=null;
     this.message=''; this.lastGoalTeam=null;
     // Tactical state
@@ -1878,8 +1913,8 @@ class Game {
   teamCls(team){ return team===this.teams[0]?'ev1':'ev2'; }
   pStr(p){ const c=this.teamCls(p.team); return `<span class="${c}">#${p.num} ${p.team.name}</span>`; }
   addEvent(html){
-    const t=Math.floor(this.gameTime);
-    const ts=`${String(Math.floor(t/60)).padStart(2,'0')}:${String(t%60).padStart(2,'0')}`;
+    const ft=this.gameTime*(45/HALF_DUR);
+    const ts=`${String(Math.floor(ft)).padStart(2,'0')}:${String(Math.floor((ft%1)*60)).padStart(2,'0')}`;
     this.events.unshift({ts,html});
     if(this.events.length>40) this.events.pop();
   }
@@ -3272,7 +3307,7 @@ const tooltip=document.getElementById('tooltip');
 
 document.querySelectorAll('.speed-btn').forEach(btn=>{
   btn.addEventListener('click',()=>{
-    game.speed=parseInt(btn.dataset.speed);
+    game.speed=parseFloat(btn.dataset.speed);
     document.querySelectorAll('.speed-btn').forEach(b=>b.classList.remove('active'));
     btn.classList.add('active');
   });
@@ -3397,13 +3432,6 @@ document.getElementById('upg-list').addEventListener('click', e => {
 renderDiceCooldown();
 renderDicePanel();
 
-// Control toggle button
-const controlBtn = document.getElementById('btn-control');
-controlBtn.addEventListener('click', () => {
-  humanControl.enabled = !humanControl.enabled;
-  controlBtn.textContent = humanControl.enabled ? 'Control' : 'Watch';
-  controlBtn.classList.toggle('active');
-});
 
 // Toast notifications for mobile
 const toastContainer=document.getElementById('toast-container');
@@ -3487,10 +3515,8 @@ function wcRenderSelect(body,footer){
 function wcRenderGroups(body,footer){
   const mdInfo=wcCurMD(),allDone=!mdInfo,md=mdInfo?mdInfo.md:3;
   wcSetPhase(allDone?'Group Stage — Complete':`Group Stage — Matchday ${md} of 3`);
-  let hasOther=false;
-  if(mdInfo)mdInfo.matches.forEach(({g,m})=>{const x=wc.gm[g][m];if(x.a!==wc.pt&&x.b!==wc.pt)hasOther=true;});
   const mdBar=allDone?'':
-    `<div class="wc-md-bar"><span class="wc-md-info">Matchday ${md}</span><div class="wc-md-btns">${hasOther?'<button class="wc-btn wc-btn-green" id="wc-sim-md">Simulate Others</button>':''}</div></div>`;
+    `<div class="wc-md-bar"><span class="wc-md-info">Matchday ${md}</span></div>`;
   const groups=Array.from({length:8},(_,g)=>{
     const st=wcStand(g);
     const rows=st.map((ti,rank)=>{const t=WC_TEAMS[ti],s=wc.stats[ti];return`<tr class="${rank<2?'wc-adv':''}${ti===wc.pt?' wc-ptm':''}"><td>${t.f} ${t.n}</td><td>${s.w}</td><td>${s.d}</td><td>${s.l}</td><td>${s.gf}</td><td>${s.ga}</td><td><b>${s.pts}</b></td></tr>`;}).join('');
@@ -3507,7 +3533,6 @@ function wcRenderGroups(body,footer){
   body.onclick=e=>{
     const pb=e.target.closest('[data-pg]');
     if(pb){const g=+pb.dataset.pg,m=+pb.dataset.pm,match=wc.gm[g][m],pIsA=match.a===wc.pt;wcStartLive(pIsA?match.a:match.b,pIsA?match.b:match.a,{type:'group',g,m,playerIsA:pIsA});return;}
-    if(e.target.id==='wc-sim-md'&&mdInfo){mdInfo.matches.forEach(({g,m})=>{const x=wc.gm[g][m];if(!x.played&&x.a!==wc.pt&&x.b!==wc.pt){const r=wcQSim(WC_TEAMS[x.a].s,WC_TEAMS[x.b].s);x.ga=r.ga;x.gb=r.gb;x.played=true;wcStat(x.a,r.ga,r.gb);wcStat(x.b,r.gb,r.ga);}});wcRender();}
   };
   if(allDone)footer.innerHTML=`<button class="wc-btn wc-btn-gold">Round of 16 →</button>`,footer.querySelector('.wc-btn-gold').onclick=()=>{wcBuildKO();wc.phase='KO';wcRender();};
 }
@@ -3529,8 +3554,6 @@ function wcRenderKO(body,footer){
   body.innerHTML=`<div class="wc-bracket">${cols}${champCol}</div>`;
   body.onclick=e=>{const pb=e.target.closest('[data-kr]');if(pb){const ri=+pb.dataset.kr,mi=+pb.dataset.ki,m=wc.ko[ri][mi],pIsA=m.a===wc.pt;wcStartLive(pIsA?m.a:m.b,pIsA?m.b:m.a,{type:'ko',round:ri,idx:mi,playerIsA:pIsA});}};
   footer.innerHTML='';
-  const canSimOthers=wc.ko[wc.koR].some(m=>!m.played&&m.a!==wc.pt&&m.b!==wc.pt&&m.a>=0);
-  if(canSimOthers){const b=document.createElement('button');b.className='wc-btn wc-btn-green';b.textContent='Simulate Others';b.onclick=()=>{wc.ko[wc.koR].forEach(m=>{if(!m.played&&m.a>=0&&m.a!==wc.pt&&m.b!==wc.pt){const r=wcKOSim(m.a,m.b);Object.assign(m,r,{played:true});}});wcAdvKO();wcRender();};footer.appendChild(b);}
   if(wc.ko[wc.koR].every(m=>m.played)&&wc.koR<3){const b=document.createElement('button');b.className='wc-btn wc-btn-gold';b.textContent=KO_NAMES[wc.koR+1]+' →';b.onclick=()=>{wcAdvKO();wcRender();};footer.appendChild(b);}
   if(wc.koR===3&&fin&&fin.played){footer.innerHTML=`<button class="wc-btn wc-btn-gold" id="wc-see-champ">🏆 See Champion</button>`;document.getElementById('wc-see-champ').onclick=()=>{wc.phase='DONE';wcRender();};}
 }
@@ -3549,11 +3572,9 @@ function wcStartLive(teamA,teamB,pInfo){
   document.querySelector('.team-name.team1-color').textContent=WC_TEAMS[teamA].n;
   document.querySelector('.team-name.team2-color').textContent=WC_TEAMS[teamB].n;
   humanControl.player=null; humanControl.enabled=false; humanControl.init(game);
-  document.getElementById('btn-control').textContent='Watch';
-  document.getElementById('btn-control').classList.remove('active');
   // Auto-run at 2× speed
-  game.speed=2; game.paused=false;
-  document.querySelectorAll('.speed-btn').forEach(b=>b.classList.toggle('active',b.dataset.speed==='2'));
+  game.speed=1.5; game.paused=false;
+  document.querySelectorAll('.speed-btn').forEach(b=>b.classList.toggle('active',b.dataset.speed==='1.5'));
   document.getElementById('btn-pause').textContent='Pause';
   toastedCount=0; wc.pending=pInfo; wc.matchDone=false; wcHide();
 }
@@ -3562,11 +3583,17 @@ function wcOnFulltime(){
   const p=wc.pending; wc.pending=null;
   const ga=game.teams[0].score,gb=game.teams[1].score;
   const rA=p.playerIsA?ga:gb,rB=p.playerIsA?gb:ga;
-  if(p.type==='group'){const m=wc.gm[p.g][p.m];m.ga=rA;m.gb=rB;m.played=true;wcStat(m.a,rA,rB);wcStat(m.b,rB,rA);}
-  else{const m=wc.ko[p.round][p.idx];m.ga=rA;m.gb=rB;m.played=true;}
+  if(p.type==='group'){
+    const m=wc.gm[p.g][p.m];m.ga=rA;m.gb=rB;m.played=true;wcStat(m.a,rA,rB);wcStat(m.b,rB,rA);
+    const md=wcCurMD();
+    if(md)md.matches.forEach(({g,m:mi})=>{const x=wc.gm[g][mi];if(!x.played){const r=wcQSim(WC_TEAMS[x.a].s,WC_TEAMS[x.b].s);x.ga=r.ga;x.gb=r.gb;x.played=true;wcStat(x.a,r.ga,r.gb);wcStat(x.b,r.gb,r.ga);}});
+  } else {
+    const m=wc.ko[p.round][p.idx];m.ga=rA;m.gb=rB;m.played=true;
+    wc.ko[p.round].forEach(km=>{if(!km.played&&km.a>=0){const r=wcKOSim(km.a,km.b);Object.assign(km,r,{played:true});}});
+    wcAdvKO();
+  }
   wcShow(); wcRender();
 }
-document.getElementById('btn-wc').onclick=()=>{wc.on=true;wcShow();wcRender();};
 // Start with World Cup screen
 wc.on=true; wcShow(); wcRender();
 
@@ -3581,8 +3608,8 @@ function loop(ts){
 
   if(wc.pending&&game.state===ST.FULL&&!wc.matchDone)wcOnFulltime();
 
-  const t=Math.floor(game.gameTime);
-  timerEl.textContent=`${String(Math.floor(t/60)).padStart(2,'0')}:${String(t%60).padStart(2,'0')}`;
+  const ft=game.gameTime*(45/HALF_DUR);
+  timerEl.textContent=`${String(Math.floor(ft)).padStart(2,'0')}:${String(Math.floor((ft%1)*60)).padStart(2,'0')}`;
   scoreEl.textContent=`${game.teams[0].score} - ${game.teams[1].score}`;
   halfLbl.textContent=game.half===1?'1st Half':'2nd Half';
 
