@@ -423,7 +423,7 @@ for (let i=2; i<=11; i++) {
 
 // Get upgrade level for a specific player + stat (0 if not Blue or GK)
 function upg(p, key) {
-  if (!p || p.team.name!=='Blue' || p.role===R.GK) return 0;
+  if (!p || p.team !== game.teams[0] || p.role===R.GK) return 0;
   return diceState.playerLevels[p.num]?.[key] || 0;
 }
 
@@ -527,6 +527,7 @@ function renderUpgradeList() {
 
 function renderDicePanel() {
   document.getElementById('dice-points').textContent = `Points: ${diceState.points}`;
+  document.querySelector('#dice-panel h3').textContent = `${game.teams[0].name} Upgrades`;
   renderUpgradeList();
 }
 
