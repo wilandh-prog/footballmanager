@@ -79,31 +79,59 @@ canvas { display: block; flex: 1; min-height: 0; }
 .upg-sel-name { color: #ffd700; font-size: 10px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 6px; margin-bottom: 5px; }
 canvas { touch-action: none; }
 #mobile-tabs { display: none; }
-.mtab { flex: 1; padding: 8px 0; color: #888; font-size: 13px; cursor: pointer; border: none; background: transparent; border-top: 2px solid transparent; transition: color 0.15s; }
+.mtab { flex: 1; padding: 10px 0; color: #888; font-size: 15px; cursor: pointer; border: none; background: transparent; border-top: 2px solid transparent; transition: color 0.15s; }
 .mtab.active { color: #4a9eff; border-top-color: #4a9eff; }
 @media (max-width: 700px) {
-  #ui { padding: 5px 10px; gap: 8px; }
-  #scoreboard { font-size: 16px; min-width: auto; }
-  #timer { font-size: 13px; }
+  /* Top bar: score on its own full-width row, controls on second row */
+  #ui { padding: 6px 12px; gap: 8px; flex-wrap: wrap; justify-content: center; }
+  #half-label { display: none; }
   #controls-help { display: none; }
+  #btn-control { display: none; }
+  #scoreboard { order: -1; width: 100%; font-size: 22px; min-width: auto; }
+  #timer { font-size: 15px; }
+  button { padding: 8px 16px; font-size: 14px; }
+
+  /* Main layout: column stack */
   #main-layout { flex-direction: column; }
-  #left-col { order: 3; width: 100%; height: 200px; overflow-y: auto; background: rgba(0,0,0,0.72); border-right: none; border-top: 1px solid rgba(255,255,255,0.08); }
-  #left-col.mob-hide { display: none; }
   #right-col { order: 1; flex: none; width: 100%; }
   #mobile-tabs { order: 2; display: flex; flex-shrink: 0; width: 100%; background: rgba(0,0,0,0.85); border-top: 1px solid rgba(255,255,255,0.1); }
-  #event-log { order: 3; width: 100%; height: 200px; border-left: none; border-top: 1px solid rgba(255,255,255,0.12); }
+  #left-col { order: 3; width: 100%; height: clamp(180px, 38vh, 290px); overflow-y: auto; background: rgba(0,0,0,0.72); border-right: none; border-top: 1px solid rgba(255,255,255,0.08); }
+  #left-col.mob-hide { display: none; }
+  #event-log { order: 3; width: 100%; height: clamp(180px, 38vh, 290px); border-left: none; border-top: 1px solid rgba(255,255,255,0.12); }
   #event-log.mob-hide { display: none; }
-  #dice-panel { overflow-y: visible; }
-  #dice-faces { height: 100px; }
-  .die-wrap, .die-cube { width: 42px; height: 42px; }
-  .die-face { width: 42px; height: 42px; border-radius: 8px; padding: 5px; }
-  .die-dot { width: 7px; height: 7px; }
-  .die-front  { transform: translateZ(21px); }
-  .die-back   { transform: rotateY(180deg) translateZ(21px); }
-  .die-top    { transform: rotateX(90deg) translateZ(21px); }
-  .die-bottom { transform: rotateX(-90deg) translateZ(21px); }
-  .die-right  { transform: rotateY(90deg) translateZ(21px); }
-  .die-left   { transform: rotateY(-90deg) translateZ(21px); }
+  .ev { padding: 6px 12px; font-size: 13px; line-height: 1.5; }
+  .ev-t { font-size: 11px; }
+
+  /* Dice panel — bigger everything for touch */
+  #dice-panel { overflow-y: visible; padding: 12px 14px; }
+  #dice-panel h3 { font-size: 15px; margin-bottom: 8px; }
+  #dice-points { font-size: 18px; margin-bottom: 12px; }
+  #dice-faces { height: 130px; gap: 18px; margin-bottom: 12px; }
+  .die-wrap { width: 50px; height: 50px; perspective: 240px; }
+  .die-cube { width: 50px; height: 50px; }
+  .die-face { width: 50px; height: 50px; border-radius: 9px; padding: 6px; }
+  .die-dot { width: 8px; height: 8px; }
+  .die-front  { transform: translateZ(25px); }
+  .die-back   { transform: rotateY(180deg) translateZ(25px); }
+  .die-top    { transform: rotateX(90deg) translateZ(25px); }
+  .die-bottom { transform: rotateX(-90deg) translateZ(25px); }
+  .die-right  { transform: rotateY(90deg) translateZ(25px); }
+  .die-left   { transform: rotateY(-90deg) translateZ(25px); }
+  #dice-combo { font-size: 14px; min-height: 22px; margin-bottom: 8px; }
+  #btn-roll { font-size: 16px; padding: 12px 0; border-radius: 8px; margin-bottom: 14px; }
+
+  /* Player picker — 4 columns, larger tap targets */
+  .plr-grid { grid-template-columns: repeat(4, 1fr); gap: 5px; margin-bottom: 10px; }
+  .plr-btn { font-size: 11px; padding: 8px 3px; border-radius: 5px; }
+
+  /* Upgrade list rows */
+  .upg-sel-name { font-size: 12px; padding-top: 8px; margin-bottom: 7px; }
+  .upg-row { margin-bottom: 7px; }
+  .upg-pos { font-size: 12px; }
+  .upg-buy { font-size: 12px; padding: 5px 9px; border-radius: 5px; }
+  .upg-maxed { font-size: 12px; }
+  .upg-pip { width: 9px; height: 9px; }
+  .upg-bar { gap: 3px; margin: 0 5px; }
 }
 </style>
 </head>
@@ -2826,8 +2854,9 @@ class Renderer {
     const uiH=document.getElementById('ui').offsetHeight;
     let w,h;
     if(window.innerWidth<=700){
-      const tabsH=document.getElementById('mobile-tabs').offsetHeight||36;
-      w=window.innerWidth; h=Math.max(window.innerHeight-uiH-tabsH-200,120);
+      const tabsH=document.getElementById('mobile-tabs').offsetHeight||44;
+      const panelH=Math.min(Math.max(Math.floor(window.innerHeight*0.38),180),290);
+      w=window.innerWidth; h=Math.max(window.innerHeight-uiH-tabsH-panelH,120);
     } else {
       const leftW=document.getElementById('left-col').offsetWidth;
       const rightW=document.getElementById('event-log').offsetWidth;
