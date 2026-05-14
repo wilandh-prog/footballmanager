@@ -78,9 +78,10 @@ canvas { display: block; flex: 1; min-height: 0; }
 .plr-btn.selected { background: #1a4a8a; border-color: #4a9eff; color: #7af; }
 .upg-sel-name { color: #ffd700; font-size: 10px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 6px; margin-bottom: 5px; }
 canvas { touch-action: none; }
-#mobile-tabs { display: none; }
-.mtab { flex: 1; padding: 10px 0; color: #888; font-size: 15px; cursor: pointer; border: none; background: transparent; border-top: 2px solid transparent; transition: color 0.15s; }
-.mtab.active { color: #4a9eff; border-top-color: #4a9eff; }
+#toast-container { position: absolute; top: 8px; left: 50%; transform: translateX(-50%); z-index: 30; display: flex; flex-direction: column; align-items: center; gap: 5px; pointer-events: none; width: 92%; }
+.toast { background: rgba(0,0,0,0.82); color: #ccc; padding: 6px 16px; border-radius: 18px; font-size: 13px; line-height: 1.4; border: 1px solid rgba(255,255,255,0.14); white-space: nowrap; max-width: 100%; overflow: hidden; text-overflow: ellipsis; animation: toast-fade 3s ease forwards; }
+.toast-goal { border-color: rgba(255,215,0,0.5); background: rgba(20,15,0,0.88); }
+@keyframes toast-fade { 0%{opacity:0;transform:translateY(-8px)} 12%{opacity:1;transform:translateY(0)} 75%{opacity:1} 100%{opacity:0} }
 @media (max-width: 700px) {
   /* Top bar: score on its own full-width row, controls on second row */
   #ui { padding: 6px 12px; gap: 8px; flex-wrap: wrap; justify-content: center; }
@@ -91,22 +92,17 @@ canvas { touch-action: none; }
   #timer { font-size: 15px; }
   button { padding: 8px 16px; font-size: 14px; }
 
-  /* Main layout: column stack */
+  /* Main layout: canvas on top, upgrades panel below */
   #main-layout { flex-direction: column; }
   #right-col { order: 1; flex: none; width: 100%; }
-  #mobile-tabs { order: 2; display: flex; flex-shrink: 0; width: 100%; background: rgba(0,0,0,0.85); border-top: 1px solid rgba(255,255,255,0.1); }
-  #left-col { order: 3; width: 100%; height: clamp(180px, 38vh, 290px); overflow-y: auto; background: rgba(0,0,0,0.72); border-right: none; border-top: 1px solid rgba(255,255,255,0.08); }
-  #left-col.mob-hide { display: none; }
-  #event-log { order: 3; width: 100%; height: clamp(180px, 38vh, 290px); border-left: none; border-top: 1px solid rgba(255,255,255,0.12); }
-  #event-log.mob-hide { display: none; }
-  .ev { padding: 6px 12px; font-size: 13px; line-height: 1.5; }
-  .ev-t { font-size: 11px; }
+  #left-col { order: 2; width: 100%; height: clamp(180px, 38vh, 290px); overflow-y: auto; background: rgba(0,0,0,0.72); border-right: none; border-top: 1px solid rgba(255,255,255,0.08); }
+  #event-log { display: none; }
 
-  /* Dice panel — bigger everything for touch */
-  #dice-panel { overflow-y: visible; padding: 6px 14px 12px; }
-  #dice-panel h3 { font-size: 15px; margin-bottom: 4px; }
-  #dice-points { font-size: 18px; margin-bottom: 6px; }
-  #dice-faces { height: 130px; gap: 18px; margin-bottom: 12px; }
+  /* Dice panel — tight top spacing so dice appear high */
+  #dice-panel { overflow-y: visible; padding: 2px 14px 12px; }
+  #dice-panel h3 { font-size: 15px; margin-bottom: 2px; }
+  #dice-points { font-size: 18px; margin-bottom: 4px; }
+  #dice-faces { height: 130px; gap: 18px; margin-bottom: 10px; }
   .die-wrap { width: 50px; height: 50px; perspective: 240px; }
   .die-cube { width: 50px; height: 50px; }
   .die-face { width: 50px; height: 50px; border-radius: 9px; padding: 6px; }
@@ -120,9 +116,9 @@ canvas { touch-action: none; }
   #dice-combo { font-size: 14px; min-height: 22px; margin-bottom: 8px; }
   #btn-roll { font-size: 16px; padding: 12px 0; border-radius: 8px; margin-bottom: 14px; }
 
-  /* Player picker — 4 columns, larger tap targets */
+  /* Player picker — 4 columns, big tap targets */
   .plr-grid { grid-template-columns: repeat(4, 1fr); gap: 5px; margin-bottom: 10px; }
-  .plr-btn { font-size: 13px; padding: 9px 4px; border-radius: 5px; }
+  .plr-btn { font-size: 15px; padding: 11px 5px; border-radius: 5px; }
 
   /* Upgrade list rows */
   .upg-sel-name { font-size: 12px; padding-top: 8px; margin-bottom: 7px; }
@@ -168,10 +164,7 @@ canvas { touch-action: none; }
   <div id="right-col">
     <canvas id="pitch"></canvas>
     <div id="message-overlay"></div>
-  </div>
-  <div id="mobile-tabs">
-    <button class="mtab active" data-panel="left-col">Upgrades</button>
-    <button class="mtab" data-panel="event-log">Events</button>
+    <div id="toast-container"></div>
   </div>
   <div id="event-log"></div>
 </div>
@@ -2854,9 +2847,8 @@ class Renderer {
     const uiH=document.getElementById('ui').offsetHeight;
     let w,h;
     if(window.innerWidth<=700){
-      const tabsH=document.getElementById('mobile-tabs').offsetHeight||44;
       const panelH=Math.min(Math.max(Math.floor(window.innerHeight*0.38),180),290);
-      w=window.innerWidth; h=Math.max(window.innerHeight-uiH-tabsH-panelH,120);
+      w=window.innerWidth; h=Math.max(window.innerHeight-uiH-panelH,120);
     } else {
       const leftW=document.getElementById('left-col').offsetWidth;
       const rightW=document.getElementById('event-log').offsetWidth;
@@ -3337,29 +3329,18 @@ controlBtn.addEventListener('click', () => {
   controlBtn.classList.toggle('active');
 });
 
-// Mobile tab switching
-(()=>{
-  function syncMobile(){
-    if(window.innerWidth>700){
-      document.getElementById('left-col').classList.remove('mob-hide');
-      document.getElementById('event-log').classList.remove('mob-hide');
-      return;
-    }
-    const active=document.querySelector('.mtab.active');
-    const panel=active?active.dataset.panel:'left-col';
-    document.getElementById('left-col').classList.toggle('mob-hide',panel!=='left-col');
-    document.getElementById('event-log').classList.toggle('mob-hide',panel!=='event-log');
-  }
-  document.getElementById('mobile-tabs').addEventListener('click',e=>{
-    const btn=e.target.closest('.mtab');
-    if(!btn)return;
-    document.querySelectorAll('.mtab').forEach(b=>b.classList.remove('active'));
-    btn.classList.add('active');
-    syncMobile();
-  });
-  window.addEventListener('resize',syncMobile);
-  syncMobile();
-})();
+// Toast notifications for mobile
+const toastContainer=document.getElementById('toast-container');
+let toastedCount=0;
+function showToast(ev){
+  if(window.innerWidth>700)return;
+  const el=document.createElement('div');
+  const isGoal=ev.html.includes('ev-goal');
+  el.className='toast'+(isGoal?' toast-goal':'');
+  el.innerHTML=`<span class="ev-t">${ev.ts}</span>${ev.html}`;
+  toastContainer.appendChild(el);
+  setTimeout(()=>el.remove(),3000);
+}
 
 let lastT=0;
 function loop(ts){
@@ -3381,6 +3362,11 @@ function loop(ts){
   renderer.draw();
   const evLog=document.getElementById('event-log');
   evLog.innerHTML=game.events.slice(0,12).map(e=>`<div class="ev"><span class="ev-t">${e.ts}</span>${e.html}</div>`).join('');
+  if(game.events.length>toastedCount){
+    if(game.events.length<toastedCount)toastedCount=0;
+    game.events.slice(0,game.events.length-toastedCount).reverse().forEach(showToast);
+    toastedCount=game.events.length;
+  }
   // Dice cooldown tick — only update the roll button text, never touch the upgrade list
   if (diceState.cooldown > 0) {
     const prevSec = Math.ceil(diceState.cooldown);
