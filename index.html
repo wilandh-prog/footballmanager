@@ -6,8 +6,10 @@
 <title>Football Match Simulation</title>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
-body { background: #1a1a2e; display: flex; flex-direction: column; align-items: center; font-family: 'Segoe UI', Arial, sans-serif; overflow: hidden; height: 100vh; }
-#ui { display: flex; align-items: center; gap: 18px; padding: 8px 20px; background: rgba(0,0,0,0.7); border-radius: 0 0 12px 12px; color: #fff; z-index: 10; }
+body { background: #1a1a2e; display: flex; flex-direction: column; font-family: 'Segoe UI', Arial, sans-serif; overflow: hidden; height: 100vh; }
+#ui { display: flex; align-items: center; gap: 18px; padding: 8px 20px; background: rgba(0,0,0,0.7); color: #fff; width: 100%; flex-shrink: 0; }
+#main-layout { display: flex; flex: 1; overflow: hidden; width: 100%; min-height: 0; }
+#right-col { display: flex; flex-direction: column; flex: 1; overflow: hidden; position: relative; }
 #scoreboard { font-size: 22px; font-weight: bold; letter-spacing: 1px; min-width: 260px; text-align: center; }
 .team-name { display: inline-block; min-width: 60px; }
 .team1-color { color: #4a9eff; }
@@ -20,17 +22,17 @@ button.active { background: #4a9eff; border-color: #4a9eff; }
 #message-overlay { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 48px; font-weight: bold; color: #fff; text-shadow: 0 0 20px rgba(0,0,0,0.8), 0 0 40px rgba(0,0,0,0.5); pointer-events: none; opacity: 0; transition: opacity 0.3s; z-index: 20; }
 #message-overlay.show { opacity: 1; }
 #half-label { font-size: 13px; color: #aaa; }
-canvas { display: block; }
+canvas { display: block; flex: 1; min-height: 0; }
 #controls-help { font-size: 10px; color: #888; white-space: nowrap; }
 #tooltip { position: absolute; background: rgba(0,0,0,0.85); color: #fff; padding: 4px 10px; border-radius: 4px; font-size: 12px; pointer-events: none; display: none; z-index: 15; }
-#event-log { position: fixed; top: 50px; right: 0; width: 188px; max-height: 320px; overflow: hidden; background: rgba(0,0,0,0.65); border-left: 1px solid rgba(255,255,255,0.08); z-index: 14; pointer-events: none; }
+#event-log { width: 100%; height: 120px; flex-shrink: 0; overflow-y: auto; background: rgba(0,0,0,0.65); border-top: 1px solid rgba(255,255,255,0.12); pointer-events: none; }
 .ev { padding: 3px 7px; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 11px; line-height: 1.4; color: #ccc; }
 .ev-t { color: #666; margin-right: 5px; font-size: 10px; }
 .ev1 { color: #4a9eff; }
 .ev2 { color: #ff4a4a; }
 .ev-goal { color: #ffd700; font-weight: bold; }
 .ev-pen { color: #ff9900; font-weight: bold; }
-#dice-panel { position: fixed; top: 50px; left: 0; width: 175px; max-height: calc(100vh - 55px); overflow-y: auto; background: rgba(0,0,0,0.72); border-right: 1px solid rgba(255,255,255,0.08); z-index: 14; padding: 8px 8px 10px; user-select: none; }
+#dice-panel { width: 175px; flex-shrink: 0; height: 100%; overflow: hidden; background: rgba(0,0,0,0.72); border-right: 1px solid rgba(255,255,255,0.08); padding: 8px 8px 10px; user-select: none; }
 #dice-panel h3 { color: #4a9eff; font-size: 12px; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 1px; }
 #dice-points { color: #ffd700; font-size: 15px; font-weight: bold; margin-bottom: 8px; }
 #dice-faces { display: flex; gap: 10px; justify-content: center; margin-bottom: 8px; height: 96px; align-items: flex-end; overflow: visible; }
@@ -59,10 +61,8 @@ canvas { display: block; }
 #btn-roll { width: 100%; padding: 6px 0; background: #2a6; color: #fff; border: none; border-radius: 6px; font-size: 12px; font-weight: bold; cursor: pointer; margin-bottom: 10px; transition: background 0.2s, opacity 0.2s; }
 #btn-roll:disabled { background: #444; opacity: 0.6; cursor: not-allowed; }
 #btn-roll:not(:disabled):hover { background: #3b7; }
-.upg-cat { margin-bottom: 7px; }
-.upg-cat-label { color: #ffd700; font-size: 10px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 2px; }
 .upg-num { color: #888; font-weight: normal; }
-.upg-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 3px; }
+.upg-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
 .upg-pos { color: #bbb; font-size: 10px; flex: 1; }
 .upg-buy { background: #1a4a8a; color: #7af; border: 1px solid #2a6aaa; border-radius: 4px; font-size: 10px; padding: 2px 5px; cursor: pointer; white-space: nowrap; transition: background 0.15s; }
 .upg-buy:disabled { background: #2a2a2a; color: #555; border-color: #444; cursor: not-allowed; }
@@ -71,6 +71,11 @@ canvas { display: block; }
 .upg-bar { display: flex; gap: 2px; margin: 0 3px; }
 .upg-pip { width: 7px; height: 7px; border-radius: 2px; background: #333; }
 .upg-pip.on { background: #4a9eff; }
+.plr-grid { display: grid; grid-template-columns: repeat(5,1fr); gap: 3px; margin-bottom: 8px; }
+.plr-btn { background: #1a1a3a; color: #bbb; border: 1px solid #333; border-radius: 4px; font-size: 9px; padding: 4px 1px; cursor: pointer; line-height: 1.3; text-align: center; transition: background 0.15s, border-color 0.15s; }
+.plr-btn:hover { background: #252550; border-color: #4a9eff; }
+.plr-btn.selected { background: #1a4a8a; border-color: #4a9eff; color: #7af; }
+.upg-sel-name { color: #ffd700; font-size: 10px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 6px; margin-bottom: 5px; }
 </style>
 </head>
 <body>
@@ -91,17 +96,21 @@ canvas { display: block; }
   <button id="btn-control">Watch</button>
   <span id="controls-help">WASD move | Space shoot | E pass | Q lob | Tab switch</span>
 </div>
-<canvas id="pitch"></canvas>
-<div id="message-overlay"></div>
 <div id="tooltip"></div>
-<div id="event-log"></div>
-<div id="dice-panel">
-  <h3>Blue Upgrades</h3>
-  <div id="dice-points">Points: 0</div>
-  <div id="dice-faces"></div>
-  <div id="dice-combo"></div>
-  <button id="btn-roll">ROLL DICE</button>
-  <div id="upg-list"></div>
+<div id="main-layout">
+  <div id="dice-panel">
+    <h3>Blue Upgrades</h3>
+    <div id="dice-points">Points: 0</div>
+    <div id="dice-faces"></div>
+    <div id="dice-combo"></div>
+    <button id="btn-roll">ROLL DICE</button>
+    <div id="upg-list"></div>
+  </div>
+  <div id="right-col">
+    <canvas id="pitch"></canvas>
+    <div id="message-overlay"></div>
+    <div id="event-log"></div>
+  </div>
 </div>
 
 <script>
@@ -147,9 +156,9 @@ const PENALTY_SETUP = 4.5;    // seconds for penalty setup
 const WALL_DIST = 9.15;       // free kick wall distance
 
 // Fatigue system
-const STAMINA_DRAIN_SPRINT = 0.008;  // per second while sprinting
-const STAMINA_DRAIN_JOG = 0.002;     // per second while jogging
-const STAMINA_RECOVER = 0.005;       // per second while idle
+const STAMINA_DRAIN_SPRINT = 0.032;  // per second while sprinting
+const STAMINA_DRAIN_JOG = 0.008;     // per second while jogging
+const STAMINA_RECOVER = 0.006;       // per second while idle
 const STAMINA_GK_FACTOR = 0.3;       // GKs drain 30% as fast
 const STAMINA_MIN_SPD = 0.82;        // at 0 stamina, 82% speed
 const STAMINA_TOUCH_PENALTY = 0.15;  // max kickCD added at 0 stamina
@@ -270,6 +279,7 @@ const diceState = {
   cooldown: 0,
   maxCooldown: 18,
   playerLevels: {}, // { num: { shot:0, speed:0, ... } }
+  selectedPlayer: 2,
 };
 
 // Initialise per-player level objects
@@ -343,35 +353,44 @@ function buyUpgrade(pnum, key) {
   renderDicePanel();
 }
 
+const PLR_POS_SHORT = [null,'LB','CB','CB','RB','LW','CM','CM','RW','ST','ST'];
+
 function renderUpgradeList() {
   const list = document.getElementById('upg-list');
-  // Skip player #1 (GK)
-  const rows = [];
+  const sel = diceState.selectedPlayer;
+
+  // Player picker grid
+  const gridBtns = [];
   for (let num=2; num<=11; num++) {
-    const keys = PLAYER_UPG_KEYS[num-1];
-    const posName = PLAYER_POS_NAMES[num-1];
-    const lvs = diceState.playerLevels[num];
-    const upgRows = keys.map(key => {
-      const lv = lvs[key] || 0;
-      const maxed = lv >= UPG_MAXLV;
-      const cost = maxed ? 0 : UPG_COSTS[key][lv];
-      const canAfford = !maxed && diceState.points >= cost;
-      const pips = Array.from({length:UPG_MAXLV},(_,i)=>
-        `<div class="upg-pip${i<lv?' on':''}"></div>`).join('');
-      return `<div class="upg-row">
-        <span class="upg-pos">${UPG_SHORT[key]}</span>
-        <div class="upg-bar">${pips}</div>
-        ${maxed
-          ? `<span class="upg-maxed">MAX</span>`
-          : `<button class="upg-buy" data-pnum="${num}" data-key="${key}" ${canAfford?'':'disabled'}>${cost}pt</button>`}
-      </div>`;
-    }).join('');
-    rows.push(`<div class="upg-cat">
-      <div class="upg-cat-label">${posName} <span class="upg-num">#${num}</span></div>
-      ${upgRows}
-    </div>`);
+    const active = num===sel ? ' selected' : '';
+    gridBtns.push(`<button class="plr-btn${active}" data-pnum="${num}">${PLR_POS_SHORT[num-1]}<br>#${num}</button>`);
   }
-  list.innerHTML = rows.join('');
+
+  // Selected player upgrade rows
+  const keys = PLAYER_UPG_KEYS[sel-1];
+  const posName = PLAYER_POS_NAMES[sel-1];
+  const lvs = diceState.playerLevels[sel];
+  const upgRows = keys.map(key => {
+    const lv = lvs[key] || 0;
+    const maxed = lv >= UPG_MAXLV;
+    const cost = maxed ? 0 : UPG_COSTS[key][lv];
+    const canAfford = !maxed && diceState.points >= cost;
+    const pips = Array.from({length:UPG_MAXLV},(_,i)=>
+      `<div class="upg-pip${i<lv?' on':''}"></div>`).join('');
+    return `<div class="upg-row">
+      <span class="upg-pos">${UPG_SHORT[key]}</span>
+      <div class="upg-bar">${pips}</div>
+      ${maxed
+        ? `<span class="upg-maxed">MAX</span>`
+        : `<button class="upg-buy" data-pnum="${sel}" data-key="${key}" ${canAfford?'':'disabled'}>${cost}pt</button>`}
+    </div>`;
+  }).join('');
+
+  list.innerHTML = `
+    <div class="plr-grid">${gridBtns.join('')}</div>
+    <div class="upg-sel-name">${posName} <span class="upg-num">#${sel}</span></div>
+    ${upgRows}
+  `;
 }
 
 function renderDicePanel() {
@@ -2736,6 +2755,29 @@ class Game {
   }
 }
 
+// ===================== STAR HELPERS =====================
+function drawStarShape(c, cx, cy, outerR, innerR, nPts, rot) {
+  c.beginPath();
+  for (let i = 0; i < nPts*2; i++) {
+    const a = rot + i*Math.PI/nPts - Math.PI/2;
+    const r = i%2===0 ? outerR : innerR;
+    i===0 ? c.moveTo(cx+Math.cos(a)*r, cy+Math.sin(a)*r)
+           : c.lineTo(cx+Math.cos(a)*r, cy+Math.sin(a)*r);
+  }
+  c.closePath();
+}
+
+function drawOrbitStars(c, cx, cy, t, numStars, orbitR, outerR, innerR, color, speed) {
+  c.fillStyle = color;
+  for (let i=0; i<numStars; i++) {
+    const angle = t*speed + i*Math.PI*2/numStars;
+    const sx = cx + Math.cos(angle)*orbitR;
+    const sy = cy + Math.sin(angle)*orbitR;
+    drawStarShape(c, sx, sy, outerR, innerR, 4, angle);
+    c.fill();
+  }
+}
+
 // ===================== RENDERER =====================
 class Renderer {
   constructor(canvas,game){
@@ -2747,9 +2789,11 @@ class Renderer {
   }
   resize(){
     const uiH=document.getElementById('ui').offsetHeight;
-    const w=window.innerWidth, h=window.innerHeight-uiH;
+    const diceW=document.getElementById('dice-panel').offsetWidth;
+    const evH=document.getElementById('event-log').offsetHeight;
+    const w=window.innerWidth-diceW, h=window.innerHeight-uiH-evH;
     this.c.width=w; this.c.height=h;
-    this.s=Math.min((w-16)/(PW+8),(h-16)/(PH+8));
+    this.s=Math.min(w/(PW+4), h/(PH+4));
     this.ox=(w-PW*this.s)/2; this.oy=(h-PH*this.s)/2;
   }
   ts(x,y){return[this.ox+x*this.s, this.oy+y*this.s];}
@@ -2871,42 +2915,20 @@ class Renderer {
               c.fillStyle = `rgba(${Math.floor(200+55*f)},${g},${b2},${a.toFixed(2)})`;
               c.beginPath(); c.arc(trail[i].x, trail[i].y, sz, 0, Math.PI*2); c.fill();
             }
-          } else {
-            // Static electric ring when standing still
-            const shimmer = 0.5+0.5*Math.sin(t*8+p.num*2.1);
-            const a = (0.45+0.35*shimmer)*(spdLv/3);
-            c.strokeStyle=`rgba(180,230,255,${a.toFixed(2)})`;
-            c.lineWidth=2;
-            c.setLineDash([5,3]);
-            c.beginPath(); c.arc(px,py,r+5+shimmer*2,0,Math.PI*2); c.stroke();
-            c.setLineDash([]);
           }
         }
 
-        // ── TACKLE: dashed yellow threat ring ───────────────────
-        if (tackleLv > 0) {
-          const flicker = 0.5+0.5*Math.sin(t*5+p.num*1.7);
-          c.strokeStyle=`rgba(255,230,0,${(0.35+0.3*flicker*tackleLv/3).toFixed(2)})`;
-          c.lineWidth=2; c.setLineDash([4,3]);
-          c.beginPath(); c.arc(px,py, TACKLE_R*s, 0, Math.PI*2); c.stroke();
-          c.setLineDash([]);
-        }
+        // ── TACKLE: yellow stars, fast orbit ────────────────────
+        if (tackleLv > 0)
+          drawOrbitStars(c, px, py, t, tackleLv, r+10, 3.5, 1.5, 'rgba(255,230,0,0.92)', 2.8);
 
-        // ── STAMINA: pulsing green ring ──────────────────────────
-        if (stamLv > 0) {
-          const pulse = 0.5+0.5*Math.sin(t*2.5+p.num*1.3);
-          c.strokeStyle=`rgba(50,255,90,${(0.4+0.35*pulse*(stamLv/3)).toFixed(2)})`;
-          c.lineWidth=2+stamLv*0.5;
-          c.beginPath(); c.arc(px,py, r+5+pulse*2.5, 0, Math.PI*2); c.stroke();
-        }
+        // ── STAMINA: green stars, slow outer orbit ───────────────
+        if (stamLv > 0)
+          drawOrbitStars(c, px, py, t, stamLv, r+14, 3.5, 1.5, 'rgba(50,255,100,0.92)', 0.9);
 
-        // ── SHOT: pulsing orange/red halo ───────────────────────
-        if (shotLv > 0) {
-          const pulse = 0.5+0.5*Math.sin(t*3.5+p.num*0.9);
-          c.strokeStyle=`rgba(255,120,0,${(0.45+0.35*pulse*(shotLv/3)).toFixed(2)})`;
-          c.lineWidth=2+shotLv*0.5;
-          c.beginPath(); c.arc(px,py, r+6+shotLv+pulse*2, 0, Math.PI*2); c.stroke();
-        }
+        // ── SHOT: orange stars, medium orbit ────────────────────
+        if (shotLv > 0)
+          drawOrbitStars(c, px, py, t, shotLv, r+12, 4, 2, 'rgba(255,120,0,0.95)', 1.8);
 
         // Shadow
         c.fillStyle='rgba(0,0,0,0.3)';
@@ -3124,7 +3146,8 @@ pauseBtn.addEventListener('click',()=>{
 });
 
 canvas.addEventListener('mousemove',(e)=>{
-  const p=renderer.getPlayerAt(e.clientX, e.clientY-canvas.offsetTop);
+  const r=canvas.getBoundingClientRect();
+  const p=renderer.getPlayerAt(e.clientX-r.left, e.clientY-r.top);
   if(p){
     const rn=['GK','DEF','MID','FWD'][p.role];
     tooltip.textContent=`#${p.num} ${p.team.name} ${rn}`;
@@ -3228,6 +3251,8 @@ initDice3D();
 document.getElementById('btn-roll').addEventListener('click', rollDice);
 // Event delegation for upgrade buy buttons (survives innerHTML rebuilds)
 document.getElementById('upg-list').addEventListener('click', e => {
+  const plr = e.target.closest('.plr-btn');
+  if (plr) { diceState.selectedPlayer = +plr.dataset.pnum; renderUpgradeList(); return; }
   const btn = e.target.closest('.upg-buy');
   if (btn && !btn.disabled) buyUpgrade(parseInt(btn.dataset.pnum), btn.dataset.key);
 });
