@@ -3622,13 +3622,13 @@ function wcRenderGroups(body,footer){
     `<div class="wc-md-bar"><span class="wc-md-info">Matchday ${md}</span></div>`;
   const groups=Array.from({length:12},(_,g)=>{
     const st=wcStand(g);
-    const rows=st.map((ti,rank)=>{const t=WC_TEAMS[ti],s=wc.stats[ti];return`<tr class="${rank<2?'wc-adv':''}${ti===wc.pt?' wc-ptm':''}"><td>${t.f} ${t.n}</td><td>${s.w}</td><td>${s.d}</td><td>${s.l}</td><td>${s.gf}</td><td>${s.ga}</td><td><b>${s.pts}</b></td></tr>`;}).join('');
+    const rows=st.map((ti,rank)=>{const t=WC_TEAMS[ti],s=wc.stats[ti];return`<tr class="${rank<2?'wc-adv':''}${ti===wc.pt?' wc-ptm':''}"><td>${t.n}</td><td>${s.w}</td><td>${s.d}</td><td>${s.l}</td><td>${s.gf}</td><td>${s.ga}</td><td><b>${s.pts}</b></td></tr>`;}).join('');
     const matchSlice=allDone?wc.gm[g]:wc.gm[g].slice((md-1)*2,md*2);
     const mRows=matchSlice.map((m,li)=>{
       const mi=allDone?li:(md-1)*2+li,tA=wcT(m.a),tB=wcT(m.b),isPtm=m.a===wc.pt||m.b===wc.pt;
       const score=m.played?`<span class="wc-match-score">${m.ga}–${m.gb}</span>`:'<span class="wc-match-score">vs</span>';
       const btn=(!m.played&&isPtm)?`<button class="wc-play-btn" data-pg="${g}" data-pm="${mi}">▶ Play</button>`:'';
-      return`<div class="wc-match-row${isPtm?' wc-ptmatch':''}"><span class="wc-match-names">${tA.f}${tA.n} — ${tB.f}${tB.n}</span>${score}${btn}</div>`;
+      return`<div class="wc-match-row${isPtm?' wc-ptmatch':''}"><span class="wc-match-names">${tA.n} — ${tB.n}</span>${score}${btn}</div>`;
     }).join('');
     return`<div class="wc-group"><div class="wc-group-hdr">Group ${String.fromCharCode(65+g)}</div><table><thead><tr><th>Team</th><th>W</th><th>D</th><th>L</th><th>GF</th><th>GA</th><th>Pts</th></tr></thead><tbody>${rows}</tbody></table>${mRows}</div>`;
   }).join('');
@@ -3645,8 +3645,8 @@ function wcRenderKO(body,footer){
   const cols=wc.ko.map((round,ri)=>{
     const cards=round.map((m,mi)=>{
       const tA=wcT(m.a),tB=wcT(m.b),w=m.played?wcKOWinner(m):-1,pens=m.pens?` (${m.pens[0]}-${m.pens[1]} pen)` :'';
-      const rA=`<div class="wc-ko-row${m.played&&w===m.a?' wc-winner':''}${m.a===wc.pt?' wc-ptm':''}"><span class="wc-ko-row-name">${tA.f} ${tA.n}</span>${m.played?`<span class="wc-ko-row-score">${m.ga}</span>`:''}</div>`;
-      const rB=`<div class="wc-ko-row${m.played&&w===m.b?' wc-winner':''}${m.b===wc.pt?' wc-ptm':''}"><span class="wc-ko-row-name">${tB.f} ${tB.n}</span>${m.played?`<span class="wc-ko-row-score">${m.gb}${pens}</span>`:''}</div>`;
+      const rA=`<div class="wc-ko-row${m.played&&w===m.a?' wc-winner':''}${m.a===wc.pt?' wc-ptm':''}"><span class="wc-ko-row-name">${tA.n}</span>${m.played?`<span class="wc-ko-row-score">${m.ga}</span>`:''}</div>`;
+      const rB=`<div class="wc-ko-row${m.played&&w===m.b?' wc-winner':''}${m.b===wc.pt?' wc-ptm':''}"><span class="wc-ko-row-name">${tB.n}</span>${m.played?`<span class="wc-ko-row-score">${m.gb}${pens}</span>`:''}</div>`;
       const act=ri===wc.koR&&!m.played&&m.a>=0?(m.a===wc.pt||m.b===wc.pt?`<div class="wc-ko-act"><button class="wc-play-btn" data-kr="${ri}" data-ki="${mi}">▶ Play</button></div>`:`<div class="wc-ko-act" style="font-size:10px;color:#444;padding:3px 0">not played</div>`):'';
       return`<div class="wc-ko-card" style="border-color:${ri===wc.koR?'rgba(74,158,255,0.3)':'transparent'}">${rA}${rB}${act}</div>`;
     }).join('');
