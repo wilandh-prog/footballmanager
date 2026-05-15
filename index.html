@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>Football Match Simulation</title>
+<title>World Cup Manager</title>
 <script src="https://sdk.crazygames.com/crazygames-sdk-v3.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
@@ -233,7 +233,7 @@ canvas { touch-action: none; }
 </div>
 <div id="wc-overlay" style="display:none">
   <div id="wc-hdr">
-    <span id="wc-hdr-title">🏆 World Cup</span>
+    <span id="wc-hdr-title">🏆 World Cup Manager</span>
     <span id="wc-hdr-phase"></span>
   </div>
   <div id="wc-body"></div>
@@ -3712,7 +3712,7 @@ function wcQSim(sA,sB){const d=(sA-sB)/100;return{ga:wcPoisson(Math.max(0.2,1.35
 function wcStat(idx,gf,ga){const s=wc.stats[idx];s.gf+=gf;s.ga+=ga;if(gf>ga){s.w++;s.pts+=3;}else if(gf===ga){s.d++;s.pts++;}else s.l++;}
 function wcStand(g){return[...wc.groups[g]].sort((a,b)=>{const sa=wc.stats[a],sb=wc.stats[b];if(sb.pts!==sa.pts)return sb.pts-sa.pts;const gda=sa.gf-sa.ga,gdb=sb.gf-sb.ga;if(gdb!==gda)return gdb-gda;return sb.gf-sa.gf;});}
 function wcDraw(){
-  // Official FIFA World Cup 2026 group draw (December 5, 2025)
+  // Official World Cup 2026 group draw (December 5, 2025)
   wc.groups=[
     [16,38,19,34], // A: Mexico, South Africa, South Korea, Czechia
     [27,35,45,12], // B: Canada, Bosnia-Herz., Qatar, Switzerland
@@ -3815,7 +3815,7 @@ function wcRender(){
 }
 function wcRenderSelect(body,footer){
   wcSetPhase('Select Your Nation');
-  body.innerHTML=`<h2 style="color:#ffd700;margin-bottom:4px;font-size:16px">Choose a team to represent</h2><p style="color:#888;font-size:11px;margin-bottom:12px">Groups use the official FIFA World Cup 2026 draw</p><div class="wc-select-grid">${WC_TEAMS.map((t,i)=>`<div class="wc-tcard${wc.pt===i?' wc-sel':''}" data-i="${i}"><span class="wc-tcard-flag">${t.f}</span><div class="wc-tcard-name">${t.n}</div><div class="wc-tcard-str">${'★'.repeat(Math.round(t.s/17))}</div></div>`).join('')}</div>`;
+  body.innerHTML=`<h2 style="color:#ffd700;margin-bottom:4px;font-size:16px">Choose a team to represent</h2><p style="color:#888;font-size:11px;margin-bottom:12px">Groups use the official World Cup 2026 draw</p><div class="wc-select-grid">${WC_TEAMS.map((t,i)=>`<div class="wc-tcard${wc.pt===i?' wc-sel':''}" data-i="${i}"><span class="wc-tcard-flag">${t.f}</span><div class="wc-tcard-name">${t.n}</div><div class="wc-tcard-str">${'★'.repeat(Math.round(t.s/17))}</div></div>`).join('')}</div>`;
   body.onclick=e=>{const c=e.target.closest('.wc-tcard');if(!c)return;wc.pt=+c.dataset.i;body.querySelectorAll('.wc-tcard').forEach(x=>x.classList.toggle('wc-sel',+x.dataset.i===wc.pt));const b=footer.querySelector('.wc-btn-gold');if(b)b.disabled=false;};
   footer.innerHTML=`<button class="wc-btn wc-btn-gold"${wc.pt<0?' disabled':''}>Confirm & Start Tournament →</button>`;
   footer.querySelector('.wc-btn-gold').onclick=()=>{if(wc.pt<0)return;resetDiceState();wcDraw();wc.phase='GROUPS';saveWC();wcRender();};
