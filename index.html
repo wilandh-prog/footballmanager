@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <title>Football Match Simulation</title>
+<script src="https://sdk.crazygames.com/crazygames-sdk-v3.js"></script>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body { background: #1a1a2e; display: flex; flex-direction: column; font-family: 'Segoe UI', Arial, sans-serif; overflow: hidden; height: 100vh; }
@@ -19,6 +20,7 @@ button { background: #333; color: #fff; border: 1px solid #555; border-radius: 6
 button:hover { background: #555; }
 button.active { background: #4a9eff; border-color: #4a9eff; }
 #speed-controls { display: flex; gap: 4px; }
+#btn-mute { padding: 5px 9px; font-size: 14px; }
 #message-overlay { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 48px; font-weight: bold; color: #fff; text-shadow: 0 0 20px rgba(0,0,0,0.8), 0 0 40px rgba(0,0,0,0.5); pointer-events: none; opacity: 0; transition: opacity 0.3s; z-index: 20; }
 #message-overlay.show { opacity: 1; }
 #half-label { font-size: 13px; color: #aaa; }
@@ -217,6 +219,7 @@ canvas { touch-action: none; }
     <button class="speed-btn active" data-speed="1.5">1.5x</button>
     <button class="speed-btn" data-speed="3">3x</button>
   </div>
+  <button id="btn-mute" title="Toggle sound">🔊</button>
 </div>
 <div id="wc-overlay" style="display:none">
   <div id="wc-hdr">
@@ -429,6 +432,35 @@ for (let i=2; i<=11; i++) {
   for (const k of keys) diceState.playerLevels[i][k] = 0;
 }
 
+function resetDiceState(){
+  diceState.points=0;
+  for(let i=2;i<=11;i++){const keys=PLAYER_UPG_KEYS[i-1];diceState.playerLevels[i]={};for(const k of keys)diceState.playerLevels[i][k]=0;}
+  saveDiceState();
+  renderDicePanel();
+}
+
+// Persist tournament state
+function saveWC(){
+  if(!wc||wc.phase==='SELECT'||wc.phase==='RESUME')return;
+  localStorage.setItem('fm_wc',JSON.stringify({phase:wc.phase,pt:wc.pt,groups:wc.groups,stats:wc.stats,gm:wc.gm,koR:wc.koR,ko:wc.ko,elimRound:wc.elimRound,elimBy:wc.elimBy}));
+}
+function clearWC(){localStorage.removeItem('fm_wc');}
+
+// Persist upgrades across sessions
+function saveDiceState() {
+  localStorage.setItem('fm_dice', JSON.stringify({points: diceState.points, playerLevels: diceState.playerLevels}));
+}
+(function loadDiceState() {
+  try {
+    const saved = JSON.parse(localStorage.getItem('fm_dice'));
+    if (!saved) return;
+    diceState.points = saved.points || 0;
+    for (const num in saved.playerLevels) {
+      if (diceState.playerLevels[num]) Object.assign(diceState.playerLevels[num], saved.playerLevels[num]);
+    }
+  } catch(e) {}
+})();
+
 // Get upgrade level for a specific player + stat (0 if not Blue or GK)
 function upg(p, key) {
   if (!p || p.team !== game.teams[0] || p.role===R.GK) return 0;
@@ -504,6 +536,7 @@ function updateSaveUI() {
 
 function rollDice() {
   if (diceState.cooldown > 0) return;
+  if(typeof playSfx!=='undefined') playSfx(sfxDice);
   const prevSavedIdx = diceState.savedIdx;
   const prevRoll = diceState.lastRoll;
 
@@ -524,6 +557,7 @@ function rollDice() {
   const bonus = combo ? combo.bonus : 0;
   diceState.points += base + bonus;
   diceState.cooldown = diceState.maxCooldown;
+  saveDiceState();
 
   for (let i = 0; i < 3; i++) {
     if (i === prevSavedIdx) continue;
@@ -542,6 +576,7 @@ function buyUpgrade(pnum, key) {
   if (diceState.points < cost) return;
   diceState.points -= cost;
   diceState.playerLevels[pnum][key] = lv + 1;
+  saveDiceState();
   renderDicePanel();
 }
 
@@ -685,6 +720,7 @@ class Player {
     this.targetPos=null; this.hasBall=false;
     this.kickCD=0; this.dtimer=Math.random()*0.3;
     this.maxSpd=role===R.GK?SPD_GK:(role===R.FWD?SPD_MAX+0.3:SPD_MAX);
+    this.wcStr=1.0;
     this.action='idle'; // idle, chase, receive, dribble, move
     // Fatigue
     this.stamina=1.0;
@@ -1419,8 +1455,8 @@ class Player {
     // More inaccuracy at extremes (too weak or overcharged)
     const accPenalty = ch > 0.9 ? (ch-0.9)*3 : 0;
     const shotLv = upg(this, 'shot');
-    const inaccMul = 1 - shotLv*0.18;
-    const pwrUpg = 1 + shotLv*0.11;
+    const inaccMul = (1 - shotLv*0.18) / this.wcStr;
+    const pwrUpg = (1 + shotLv*0.11) * this.wcStr;
     const inacc=rand(-0.05-accPenalty,0.05+accPenalty)*d/15*inaccMul;
     // Higher loft when overcharged
     let loft = rand(0, 1.5) + (ch > 0.85 ? (ch-0.85)*8 : 0);
@@ -2166,7 +2202,7 @@ class Game {
         if(o.role===R.GK && o.pos.dist(o.defGoal())>15) continue;
         const d=o.pos.dist(ball.owner.pos);
         const tackleLv = upg(o, 'tackle');
-        const tackleChance = TACKLE_PCT * (1 + tackleLv*0.36);
+        const tackleChance = TACKLE_PCT * (1 + tackleLv*0.36) * o.wcStr;
         if(d<TACKLE_R && Math.random()<tackleChance){
           // Foul check
           if(Math.random()<FOUL_PCT){
@@ -2269,6 +2305,7 @@ class Game {
           gk.kickCD=GK_HOLD_T;
           this.state=ST.GK_HOLD; this.stateT=GK_HOLD_T;
           this.addEvent(`Save: ${this.pStr(gk)}`);
+          if(typeof playSfx!=='undefined') playSfx(sfxCheer1);
           return;
         }
       }
@@ -2305,6 +2342,8 @@ class Game {
     team.score++;
     this.state=ST.GOAL; this.stateT=GOAL_WAIT;
     this.message='GOAL!'; this.lastGoalTeam=team;
+    if(typeof playSfx!=='undefined'){sfxCheer1.pause();sfxCheer1.currentTime=0;playSfx(sfxCheer2);}
+    CG.happytime();
     const scorer=this.ball.lastOwner;
     const cls=this.teamCls(team);
     const scorerStr=scorer?` ${this.pStr(scorer)}`:'';
@@ -3457,6 +3496,34 @@ document.getElementById('upg-list').addEventListener('click', e => {
 renderDiceCooldown();
 renderDicePanel();
 
+// CrazyGames SDK wrapper (no-ops when running outside CrazyGames)
+const CG = {
+  sdk: null,
+  gameplayStart(){ try{ this.sdk?.game.gameplayStart(); }catch(e){} },
+  gameplayStop() { try{ this.sdk?.game.gameplayStop();  }catch(e){} },
+  happytime()    { try{ this.sdk?.game.happytime();     }catch(e){} },
+  requestAd(cb){ if(!this.sdk){cb();return;} try{ this.sdk.ad.requestAd('midgame',{adFinished:cb,adError:cb}); }catch(e){cb();} },
+};
+
+// Audio
+const sfxBg     = new Audio('stadium crowd background.mp3'); sfxBg.loop=true; sfxBg.volume=0.25;
+const sfxCheer1 = new Audio('stadium crowd cheer 1.mp3');   sfxCheer1.volume=0.55;
+const sfxCheer2 = new Audio('stadium crowd cheer 2.mp3');   sfxCheer2.volume=0.8;
+const sfxDice   = new Audio('dice roll.mp3');               sfxDice.volume=0.7;
+let bgStarted=false;
+let isMuted=false;
+function setMute(m){
+  isMuted=m;
+  [sfxBg,sfxCheer1,sfxCheer2,sfxDice].forEach(a=>a.muted=m);
+  if(m) sfxBg.pause(); else if(bgStarted) sfxBg.play().catch(()=>{});
+  const btn=document.getElementById('btn-mute');
+  if(btn) btn.textContent=m?'🔇':'🔊';
+}
+function startBg(){if(bgStarted)return;bgStarted=true;if(!isMuted)sfxBg.play().catch(()=>{});}
+function playSfx(a){if(wc.on&&!wc.pending)return;if(isMuted)return;a.currentTime=0;a.play().catch(()=>{});}
+document.addEventListener('click',startBg,{once:true});
+document.addEventListener('keydown',startBg,{once:true});
+document.getElementById('btn-mute').addEventListener('click',()=>setMute(!isMuted));
 
 // Toast notifications for mobile
 const toastContainer=document.getElementById('toast-container');
@@ -3529,7 +3596,7 @@ const WC_TEAMS=[
   {n:'Curaçao',f:'🇨🇼',s:40,c:'#003087',c2:'#F7A600'},
 ];
 const GS=[[0,1],[2,3],[0,2],[1,3],[0,3],[1,2]]; // group stage match pairs within each group
-const wc={on:false,phase:'SELECT',pt:-1,groups:[],stats:[],gm:[],koR:0,ko:[],pending:null,matchDone:false};
+const wc={on:false,phase:'SELECT',pt:-1,groups:[],stats:[],gm:[],koR:0,ko:[],pending:null,matchDone:false,elimRound:-1,elimBy:-1};
 
 function wcPoisson(l){let L=Math.exp(-l),k=0,p=1;do{k++;p*=Math.random();}while(p>L);return k-1;}
 function wcQSim(sA,sB){const d=(sA-sB)/100;return{ga:wcPoisson(Math.max(0.2,1.35+d*2.5)),gb:wcPoisson(Math.max(0.2,1.35-d*2.5))};}
@@ -3600,12 +3667,41 @@ function wcShow(){document.getElementById('wc-overlay').style.display='flex';}
 function wcHide(){document.getElementById('wc-overlay').style.display='none';}
 function wcSetPhase(t){document.getElementById('wc-hdr-phase').textContent=t;}
 
+function wcRenderResume(body,footer){
+  const pt=WC_TEAMS[wc.pt];
+  const phaseStr=wc.savedPhase==='GROUPS'?'Group Stage':wc.savedPhase==='KO'?KO_NAMES[wc.koR]:wc.savedPhase==='ELIMINATED'?'Eliminated':'Tournament';
+  wcSetPhase('Resume Tournament');
+  body.innerHTML=`<div style="text-align:center;padding:48px 20px">
+    <div style="font-size:14px;color:#888;margin-bottom:10px">Tournament in progress</div>
+    <div style="font-size:22px;font-weight:bold;color:#ffd700;margin-bottom:6px">${pt.n}</div>
+    <div style="font-size:13px;color:#aaa">${phaseStr}</div>
+  </div>`;
+  footer.innerHTML=`<button class="wc-btn wc-btn-gold" id="wc-resume">Continue Tournament</button><button class="wc-btn" id="wc-newt">New Tournament</button>`;
+  document.getElementById('wc-resume').onclick=()=>{wc.phase=wc.savedPhase;wcRender();};
+  document.getElementById('wc-newt').onclick=()=>{clearWC();wc.phase='SELECT';wc.pt=-1;wcRender();};
+}
+function wcRenderEliminated(body,footer){
+  const pt=WC_TEAMS[wc.pt];
+  const roundName=wc.elimRound===-1?'Group Stage':KO_NAMES[wc.elimRound];
+  const elimBy=wc.elimBy>=0?WC_TEAMS[wc.elimBy].n:null;
+  body.innerHTML=`<div style="text-align:center;padding:48px 20px">
+    <div style="font-size:52px;margin-bottom:14px">🏳️</div>
+    <div style="font-size:20px;font-weight:bold;color:#e55;margin-bottom:10px">${pt.n} eliminated</div>
+    <div style="color:#999;margin-bottom:6px">Knocked out in the <b style="color:#ccc">${roundName}</b></div>
+    ${elimBy?`<div style="color:#999">By <b style="color:#ccc">${elimBy}</b></div>`:''}
+  </div>`;
+  footer.innerHTML=`<button class="wc-btn" id="wc-watch">Watch Tournament</button><button class="wc-btn" id="wc-new">New Tournament</button>`;
+  document.getElementById('wc-watch').onclick=()=>{wc.phase='KO';wc.pt=-1;wcRender();};
+  document.getElementById('wc-new').onclick=()=>{clearWC();wc.phase='SELECT';wc.pt=-1;wcRender();};
+}
 function wcRender(){
   const body=document.getElementById('wc-body'),footer=document.getElementById('wc-footer');
   body.innerHTML='';footer.innerHTML='';body.onclick=null;
-  if(wc.phase==='SELECT')wcRenderSelect(body,footer);
+  if(wc.phase==='RESUME')wcRenderResume(body,footer);
+  else if(wc.phase==='SELECT')wcRenderSelect(body,footer);
   else if(wc.phase==='GROUPS')wcRenderGroups(body,footer);
   else if(wc.phase==='KO')wcRenderKO(body,footer);
+  else if(wc.phase==='ELIMINATED')wcRenderEliminated(body,footer);
   else if(wc.phase==='DONE')wcRenderDone(body,footer);
 }
 function wcRenderSelect(body,footer){
@@ -3613,7 +3709,7 @@ function wcRenderSelect(body,footer){
   body.innerHTML=`<h2 style="color:#ffd700;margin-bottom:4px;font-size:16px">Choose a team to represent</h2><p style="color:#888;font-size:11px;margin-bottom:12px">Groups use the official FIFA World Cup 2026 draw</p><div class="wc-select-grid">${WC_TEAMS.map((t,i)=>`<div class="wc-tcard${wc.pt===i?' wc-sel':''}" data-i="${i}"><span class="wc-tcard-flag">${t.f}</span><div class="wc-tcard-name">${t.n}</div><div class="wc-tcard-str">${'★'.repeat(Math.round(t.s/17))}</div></div>`).join('')}</div>`;
   body.onclick=e=>{const c=e.target.closest('.wc-tcard');if(!c)return;wc.pt=+c.dataset.i;body.querySelectorAll('.wc-tcard').forEach(x=>x.classList.toggle('wc-sel',+x.dataset.i===wc.pt));const b=footer.querySelector('.wc-btn-gold');if(b)b.disabled=false;};
   footer.innerHTML=`<button class="wc-btn wc-btn-gold"${wc.pt<0?' disabled':''}>Confirm & Start Tournament →</button>`;
-  footer.querySelector('.wc-btn-gold').onclick=()=>{if(wc.pt<0)return;wcDraw();wc.phase='GROUPS';wcRender();};
+  footer.querySelector('.wc-btn-gold').onclick=()=>{if(wc.pt<0)return;resetDiceState();wcDraw();wc.phase='GROUPS';saveWC();wcRender();};
 }
 function wcRenderGroups(body,footer){
   const mdInfo=wcCurMD(),allDone=!mdInfo,md=mdInfo?mdInfo.md:3;
@@ -3637,7 +3733,7 @@ function wcRenderGroups(body,footer){
     const pb=e.target.closest('[data-pg]');
     if(pb){const g=+pb.dataset.pg,m=+pb.dataset.pm,match=wc.gm[g][m],pIsA=match.a===wc.pt;wcStartLive(pIsA?match.a:match.b,pIsA?match.b:match.a,{type:'group',g,m,playerIsA:pIsA});return;}
   };
-  if(allDone)footer.innerHTML=`<button class="wc-btn wc-btn-gold">Round of 32 →</button>`,footer.querySelector('.wc-btn-gold').onclick=()=>{wcBuildKO();wc.phase='KO';wcRender();};
+  if(allDone)footer.innerHTML=`<button class="wc-btn wc-btn-gold">Round of 32 →</button>`,footer.querySelector('.wc-btn-gold').onclick=()=>{wcBuildKO();const q=wc.ko[0].some(m=>m.a===wc.pt||m.b===wc.pt);if(!q){wc.phase='ELIMINATED';wc.elimRound=-1;wc.elimBy=-1;}else{wc.phase='KO';}saveWC();wcRender();};
 }
 const KO_NAMES=['Round of 32','Round of 16','Quarter-finals','Semi-finals','Final'];
 function wcRenderKO(body,footer){
@@ -3665,7 +3761,7 @@ function wcRenderDone(body,footer){
   wcSetPhase('Tournament Complete');
   body.innerHTML=`<div class="wc-champion"><span class="wc-champion-flag">${t.f}</span><div class="wc-champion-txt">🏆 ${t.n}</div><div class="wc-champion-sub">${w===wc.pt?'Congratulations — you are World Champions!':'World Cup Champions'}</div></div>`;
   footer.innerHTML=`<button class="wc-btn" id="wc-new">New Tournament</button><button class="wc-btn wc-btn-green" id="wc-close">Close</button>`;
-  document.getElementById('wc-new').onclick=()=>{wc.phase='SELECT';wc.pt=-1;wcRender();};
+  document.getElementById('wc-new').onclick=()=>{clearWC();wc.phase='SELECT';wc.pt=-1;wcRender();};
   document.getElementById('wc-close').onclick=()=>{wcHide();wc.on=false;const dyn=document.getElementById('team-dyn-style');if(dyn)dyn.remove();document.querySelector('.team-name.team1-color').textContent='Blue';document.querySelector('.team-name.team2-color').textContent='Red';};
 }
 function wcStartLive(teamA,teamB,pInfo){
@@ -3681,7 +3777,7 @@ function wcStartLive(teamA,teamB,pInfo){
   let dyn=document.getElementById('team-dyn-style');
   if(!dyn){dyn=document.createElement('style');dyn.id='team-dyn-style';document.head.appendChild(dyn);}
   dyn.textContent=`.ev1,.team1-color{color:${cA}}.ev2,.team2-color{color:${cB}}`;
-  [teamA,teamB].forEach((ti,side)=>{const sc=WC_TEAMS[ti].s/78;game.teams[side].players.forEach(p=>{p.maxSpd=Math.min(p.maxSpd*sc,11);});});
+  [teamA,teamB].forEach((ti,side)=>{const sc=WC_TEAMS[ti].s/78;game.teams[side].players.forEach(p=>{p.maxSpd=Math.min(p.maxSpd*sc,11);p.wcStr=sc;});});
   document.querySelector('.team-name.team1-color').textContent=WC_TEAMS[teamA].n;
   document.querySelector('.team-name.team2-color').textContent=WC_TEAMS[teamB].n;
   humanControl.player=null; humanControl.enabled=false; humanControl.init(game);
@@ -3689,7 +3785,7 @@ function wcStartLive(teamA,teamB,pInfo){
   game.speed=1.5; game.paused=false;
   document.querySelectorAll('.speed-btn').forEach(b=>b.classList.toggle('active',b.dataset.speed==='1.5'));
   document.getElementById('btn-pause').textContent='Pause';
-  toastedCount=0; wc.pending=pInfo; wc.matchDone=false; wcHide();
+  toastedCount=0; wc.pending=pInfo; wc.matchDone=false; wcHide(); CG.gameplayStart();
 }
 function wcOnFulltime(){
   if(wc.matchDone||!wc.pending)return; wc.matchDone=true;
@@ -3700,15 +3796,37 @@ function wcOnFulltime(){
     const m=wc.gm[p.g][p.m];m.ga=rA;m.gb=rB;m.played=true;wcStat(m.a,rA,rB);wcStat(m.b,rB,rA);
     const md=wcCurMD();
     if(md)md.matches.forEach(({g,m:mi})=>{const x=wc.gm[g][mi];if(!x.played){const r=wcQSim(WC_TEAMS[x.a].s,WC_TEAMS[x.b].s);x.ga=r.ga;x.gb=r.gb;x.played=true;wcStat(x.a,r.ga,r.gb);wcStat(x.b,r.gb,r.ga);}});
+    saveWC();
   } else {
     const m=wc.ko[p.round][p.idx];m.ga=rA;m.gb=rB;m.played=true;
     wc.ko[p.round].forEach(km=>{if(!km.played&&km.a>=0){const r=wcKOSim(km.a,km.b);Object.assign(km,r,{played:true});}});
+    const elimBy=wcKOWinner(m);
+    const playerWon=elimBy===wc.pt;
     wcAdvKO();
+    if(!playerWon){wc.phase='ELIMINATED';wc.elimRound=p.round;wc.elimBy=elimBy;}
   }
-  wcShow(); wcRender();
+  saveWC();
+  CG.gameplayStop();
+  CG.requestAd(()=>{ wcShow(); wcRender(); });
 }
+// Init CrazyGames SDK
+(async()=>{
+  try{
+    if(window.CrazyGames?.SDK){
+      CG.sdk=window.CrazyGames.SDK;
+      CG.sdk.game.loadingStart();
+      await CG.sdk.init();
+      CG.sdk.game.loadingStop();
+      CG.sdk.game.addSettingsChangeListener(s=>{ if(s.muteAudio!==undefined) setMute(s.muteAudio); });
+      if(CG.sdk.game.settings?.muteAudio) setMute(true);
+    }
+  }catch(e){}
+})();
+
 // Start with World Cup screen
-wc.on=true; wcShow(); wcRender();
+wc.on=true;
+try{const s=JSON.parse(localStorage.getItem('fm_wc'));if(s&&s.phase&&s.phase!=='SELECT'&&s.phase!=='DONE'){Object.assign(wc,s);wc.savedPhase=wc.phase;wc.phase='RESUME';}}catch(e){}
+wcShow(); wcRender();
 
 let lastT=0;
 function loop(ts){
