@@ -3281,7 +3281,7 @@ class Renderer {
       c.fillRect(g1x-(side===0?GOAL_DEPTH*s:0),g1y,GOAL_DEPTH*s,GOAL_W*s);
       c.strokeStyle='rgba(255,255,255,0.9)';
       c.lineWidth=Math.max(2,s*0.2);
-      const nx=side===0?g1x-GOAL_DEPTH*s:g1x;
+      const nx=side===0?g1x-GOAL_DEPTH*s:g1x+GOAL_DEPTH*s;
       c.beginPath();c.moveTo(g1x,g1y);c.lineTo(nx,g1y);c.lineTo(nx,g1y+GOAL_W*s);c.lineTo(g1x,g1y+GOAL_W*s);c.stroke();
       c.strokeStyle='rgba(255,255,255,0.7)';
       c.lineWidth=Math.max(1.5,s*0.12);
