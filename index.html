@@ -3845,6 +3845,18 @@ function wcRenderGroups(body,footer){
   if(allDone)footer.innerHTML=`<button class="wc-btn wc-btn-gold">Round of 32 →</button>`,footer.querySelector('.wc-btn-gold').onclick=()=>{wcBuildKO();const q=wc.ko[0].some(m=>m.a===wc.pt||m.b===wc.pt);if(!q){wc.phase='ELIMINATED';wc.elimRound=-1;wc.elimBy=-1;}else{wc.phase='KO';}saveWC();wcRender();};
 }
 const KO_NAMES=['Round of 32','Round of 16','Quarter-finals','Semi-finals','Final'];
+function wcSimRound(){
+  wc.ko[wc.koR].forEach(km=>{if(!km.played&&km.a>=0)Object.assign(km,wcKOSim(km.a,km.b),{played:true});});
+  saveWC();wcRender();
+}
+function wcSimAll(){
+  while(wc.koR<=4){
+    wc.ko[wc.koR].forEach(km=>{if(!km.played&&km.a>=0)Object.assign(km,wcKOSim(km.a,km.b),{played:true});});
+    if(wc.koR===4)break;
+    wcAdvKO();
+  }
+  saveWC();wcRender();
+}
 function wcRenderKO(body,footer){
   wcSetPhase(KO_NAMES[wc.koR]);
   const cols=wc.ko.map((round,ri)=>{
@@ -3862,7 +3874,15 @@ function wcRenderKO(body,footer){
   body.innerHTML=`<div class="wc-bracket">${cols}${champCol}</div>`;
   body.onclick=e=>{const pb=e.target.closest('[data-kr]');if(pb){const ri=+pb.dataset.kr,mi=+pb.dataset.ki,m=wc.ko[ri][mi],pIsA=m.a===wc.pt;wcStartLive(pIsA?m.a:m.b,pIsA?m.b:m.a,{type:'ko',round:ri,idx:mi,playerIsA:pIsA});}};
   footer.innerHTML='';
-  if(wc.ko[wc.koR].every(m=>m.played)&&wc.koR<4){const b=document.createElement('button');b.className='wc-btn wc-btn-gold';b.textContent=KO_NAMES[wc.koR+1]+' →';b.onclick=()=>{wcAdvKO();wcRender();};footer.appendChild(b);}
+  const curDone=wc.ko[wc.koR].every(m=>m.played);
+  if(wc.pt===-1&&!curDone){
+    const bR=document.createElement('button');bR.className='wc-btn wc-btn-gold';bR.textContent='Simulate Round';
+    bR.onclick=()=>{wcSimRound();};footer.appendChild(bR);
+    const bA=document.createElement('button');bA.className='wc-btn';bA.textContent='Simulate All →';
+    bA.onclick=()=>{wcSimAll();};footer.appendChild(bA);
+  } else if(curDone&&wc.koR<4){
+    const b=document.createElement('button');b.className='wc-btn wc-btn-gold';b.textContent=KO_NAMES[wc.koR+1]+' →';b.onclick=()=>{wcAdvKO();wcRender();};footer.appendChild(b);
+  }
   if(wc.koR===4&&fin&&fin.played){footer.innerHTML=`<button class="wc-btn wc-btn-gold" id="wc-see-champ">🏆 See Champion</button>`;document.getElementById('wc-see-champ').onclick=()=>{wc.phase='DONE';wcRender();};}
 }
 function wcRenderDone(body,footer){
