@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <title>Dice World Cup</title>
 <script src="https://sdk.crazygames.com/crazygames-sdk-v3.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/twemoji@14.0.2/dist/twemoji.min.js" crossorigin="anonymous"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
@@ -90,6 +91,8 @@ canvas { display: block; flex: 1; min-height: 0; }
 .plr-btn.selected { background: #1a4a8a; border-color: #4a9eff; color: #7af; }
 .upg-sel-name { color: #ffd700; font-size: 10px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 6px; margin-bottom: 5px; }
 canvas { touch-action: none; }
+
+img.emoji { height:1em; width:1em; margin:0 .05em 0 .1em; vertical-align:-.1em; }
 
 /* ===== IN-MATCH TUTORIAL ===== */
 #tut-spot { position:fixed; border-radius:10px; box-shadow:0 0 0 9999px rgba(0,0,0,0.78); z-index:800; pointer-events:none; transition:all 0.35s cubic-bezier(.4,0,.2,1); }
@@ -3930,6 +3933,7 @@ function wcRender(){
   else if(wc.phase==='KO')wcRenderKO(body,footer);
   else if(wc.phase==='ELIMINATED')wcRenderEliminated(body,footer);
   else if(wc.phase==='DONE')wcRenderDone(body,footer);
+  if(typeof twemoji!=='undefined') twemoji.parse(document.getElementById('wc-overlay'));
 }
 function wcRenderSelect(body,footer){
   wcSetPhase('Select Your Nation');
