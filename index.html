@@ -3747,7 +3747,7 @@ function setMute(m){
   const btn=document.getElementById('btn-mute');
   if(btn) btn.textContent=m?'🔇':'🔊';
 }
-function startBg(){if(bgStarted)return;bgStarted=true;if(!isMuted)sfxBg.play().catch(()=>{});}
+function startBg(){if(bgStarted)return;bgStarted=true;if(!isMuted&&document.getElementById('wc-overlay').style.display==='none')sfxBg.play().catch(()=>{});}
 function playSfx(a){if(wc.on&&!wc.pending)return;if(isMuted)return;a.currentTime=0;a.play().catch(()=>{});}
 document.addEventListener('click',startBg,{once:true});
 document.addEventListener('keydown',startBg,{once:true});
