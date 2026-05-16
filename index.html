@@ -3700,8 +3700,13 @@ function tutShow(step) {
   spot.style.display = 'block';
   callout.style.display = 'block';
   tutPosition(spot, targetEl);
-  // Position callout below the spotlight, flip above if too close to bottom
+  // Clip box-shadow so it doesn't spill over the pitch (right of left column)
+  const lcr = document.getElementById('left-col').getBoundingClientRect();
+  const pad = 8;
   const r = targetEl.getBoundingClientRect();
+  const rightInset = -(lcr.right - (r.right + pad));
+  spot.style.clipPath = `inset(-9999px ${rightInset}px -9999px -9999px)`;
+  // Position callout below the spotlight, flip above if too close to bottom
   const cH = 130;
   const below = r.bottom + 16 + cH < window.innerHeight;
   callout.style.top  = below ? (r.bottom + 16) + 'px' : (r.top - 16 - cH) + 'px';
