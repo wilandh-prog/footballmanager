@@ -3891,8 +3891,8 @@ function wcAdvKO(){
   wc.koR++;
 }
 function wcT(i){return i>=0?WC_TEAMS[i]:{n:'TBD',f:'?',s:0};}
-function wcShow(){document.getElementById('wc-overlay').style.display='flex';}
-function wcHide(){document.getElementById('wc-overlay').style.display='none';}
+function wcShow(){document.getElementById('wc-overlay').style.display='flex';sfxBg.pause();}
+function wcHide(){document.getElementById('wc-overlay').style.display='none';if(bgStarted&&!isMuted)sfxBg.play().catch(()=>{});}
 function wcSetPhase(t){document.getElementById('wc-hdr-phase').textContent=t;}
 
 function wcRenderResume(body,footer){
