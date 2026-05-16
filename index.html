@@ -90,19 +90,14 @@ canvas { display: block; flex: 1; min-height: 0; }
 .upg-sel-name { color: #ffd700; font-size: 10px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 6px; margin-bottom: 5px; }
 canvas { touch-action: none; }
 
-/* ===== TUTORIAL OVERLAY ===== */
-#tutorial-overlay { position:fixed; inset:0; background:rgba(5,5,20,0.93); z-index:500; display:flex; align-items:center; justify-content:center; padding:16px; }
-#tutorial-box { background:linear-gradient(160deg,#0d0d28 0%,#121230 100%); border:1px solid rgba(255,215,0,0.25); border-radius:16px; max-width:420px; width:100%; padding:28px 24px 22px; box-shadow:0 0 60px rgba(255,215,0,0.08); color:#fff; font-family:'Inter','Segoe UI',Arial,sans-serif; }
-#tutorial-box h2 { font-family:'Barlow Condensed',sans-serif; font-size:26px; font-weight:700; letter-spacing:3px; text-transform:uppercase; color:#ffd700; text-align:center; margin:0 0 18px; text-shadow:0 0 20px rgba(255,215,0,0.4); }
-.tut-row { display:flex; gap:14px; align-items:flex-start; margin-bottom:14px; }
-.tut-icon { font-size:26px; flex-shrink:0; width:36px; text-align:center; margin-top:2px; }
-.tut-row strong { display:block; font-size:13px; font-weight:700; color:#ffd700; margin-bottom:3px; letter-spacing:0.5px; }
-.tut-row p { font-size:12px; color:#bbb; margin:0; line-height:1.55; }
-.tut-combo { background:rgba(255,255,255,0.05); border-radius:8px; padding:10px 12px; margin:14px 0 18px; display:grid; grid-template-columns:1fr 1fr; gap:4px 10px; }
-.tut-combo span { font-size:11px; color:#aaa; }
-.tut-combo b { color:#ffd700; }
-#tutorial-ok { display:block; width:100%; padding:12px; background:linear-gradient(90deg,#e6b800,#ffd700); color:#000; font-family:'Barlow Condensed',sans-serif; font-size:18px; font-weight:700; letter-spacing:2px; border:none; border-radius:10px; cursor:pointer; transition:opacity 0.2s; text-transform:uppercase; }
-#tutorial-ok:hover { opacity:0.88; }
+/* ===== IN-MATCH TUTORIAL ===== */
+#tut-spot { position:fixed; border-radius:10px; box-shadow:0 0 0 9999px rgba(0,0,0,0.78); z-index:800; pointer-events:none; transition:all 0.35s cubic-bezier(.4,0,.2,1); }
+#tut-callout { position:fixed; z-index:801; background:linear-gradient(160deg,#0e0e28,#181838); border:1px solid rgba(255,215,0,0.35); border-radius:13px; padding:14px 16px 12px; max-width:230px; color:#fff; font-family:'Inter','Segoe UI',Arial,sans-serif; box-shadow:0 4px 30px rgba(0,0,0,0.5); transition:all 0.35s cubic-bezier(.4,0,.2,1); }
+#tut-callout strong { display:block; font-size:13px; font-weight:700; color:#ffd700; margin-bottom:5px; letter-spacing:0.4px; }
+#tut-callout p { font-size:12px; color:#ccc; margin:0 0 10px; line-height:1.5; }
+#tut-next { background:linear-gradient(90deg,#c9a000,#ffd700); color:#000; border:none; border-radius:7px; padding:7px 14px; font-family:'Barlow Condensed',sans-serif; font-size:14px; font-weight:700; letter-spacing:1.5px; cursor:pointer; text-transform:uppercase; float:right; }
+#tut-skip { background:none; border:none; color:#666; font-size:11px; cursor:pointer; float:left; padding:7px 0; }
+#tut-skip:hover { color:#999; }
 
 /* ===== WORLD CUP OVERLAY ===== */
 #wc-overlay { position:fixed; inset:0; background:linear-gradient(160deg,#07071a 0%,#0d0d24 60%,#0a0a1e 100%); z-index:200; display:flex; flex-direction:column; overflow:hidden; color:#fff; font-family:'Inter','Segoe UI',Arial,sans-serif; }
@@ -254,46 +249,13 @@ canvas { touch-action: none; }
   <div id="wc-body"></div>
   <div id="wc-footer"></div>
 </div>
-<div id="tutorial-overlay" style="display:none">
-  <div id="tutorial-box">
-    <h2>🎲 How to Play</h2>
-    <div class="tut-row">
-      <div class="tut-icon">🎲</div>
-      <div>
-        <strong>Roll the Dice</strong>
-        <p>Roll 4 dice each turn to earn points. Click up to 2 dice to <b style="color:#ffd700">save</b> them before re-rolling — saved dice keep their value.</p>
-      </div>
-    </div>
-    <div class="tut-row">
-      <div class="tut-icon">⚡</div>
-      <div>
-        <strong>Combos = Bonus Points</strong>
-        <div class="tut-combo">
-          <span>Pair</span><span>+<b>30</b></span>
-          <span>Two Pairs</span><span>+<b>50</b></span>
-          <span>Three of a Kind</span><span>+<b>80</b></span>
-          <span>Straight (4 in a row)</span><span>+<b>120</b></span>
-          <span>Four of a Kind</span><span>+<b>180</b></span>
-          <span>Four 6s — JACKPOT!</span><span>+<b>250</b></span>
-        </div>
-      </div>
-    </div>
-    <div class="tut-row">
-      <div class="tut-icon">⬆️</div>
-      <div>
-        <strong>Upgrade Your Players</strong>
-        <p>Spend points to boost Shot, Speed, Tackle, or Stamina for each player on your team. Stronger players win more matches.</p>
-      </div>
-    </div>
-    <div class="tut-row">
-      <div class="tut-icon">🏆</div>
-      <div>
-        <strong>Win the World Cup</strong>
-        <p>Open the trophy menu to enter the tournament. Survive the Group Stage, then win Knockout rounds all the way to the Final!</p>
-      </div>
-    </div>
-    <button id="tutorial-ok">Let's Go!</button>
-  </div>
+<div id="tut-spot" style="display:none"></div>
+<div id="tut-callout" style="display:none">
+  <strong id="tut-title"></strong>
+  <p id="tut-body"></p>
+  <button id="tut-skip">Skip</button>
+  <button id="tut-next">Next →</button>
+  <div style="clear:both"></div>
 </div>
 <div id="tooltip"></div>
 <div id="main-layout">
@@ -3708,17 +3670,57 @@ document.getElementById('upg-list').addEventListener('click', e => {
 renderDiceCooldown();
 renderDicePanel();
 
-// First-time tutorial
-(function(){
-  const el = document.getElementById('tutorial-overlay');
-  if (!localStorage.getItem('fm_seen')) {
-    el.style.display = 'flex';
-  }
-  document.getElementById('tutorial-ok').addEventListener('click', () => {
-    localStorage.setItem('fm_seen', '1');
-    el.style.display = 'none';
-  });
-})();
+// In-match interactive tutorial
+const TUT_STEPS = [
+  { target:'#btn-roll',   title:'Roll the Dice', body:'Hit ROLL DICE to earn points. The sum of all 4 dice goes straight to your points total. Combos earn big bonuses!' },
+  { target:'#dice-faces', title:'Save a Die',     body:'Click any die to save it before re-rolling — up to 2 at a time. Pairs and three-of-a-kinds unlock bonus points!' },
+  { target:'#upg-list',   title:'Upgrade Players', body:'Spend your points here to boost Shot, Speed, Tackle or Stamina. Upgraded players perform better in every match!' },
+];
+let tutStep = 0;
+function tutPosition(el, targetEl) {
+  const r = targetEl.getBoundingClientRect();
+  const pad = 8;
+  el.style.left   = (r.left - pad) + 'px';
+  el.style.top    = (r.top  - pad) + 'px';
+  el.style.width  = (r.width  + pad*2) + 'px';
+  el.style.height = (r.height + pad*2) + 'px';
+}
+function tutShow(step) {
+  const spot = document.getElementById('tut-spot');
+  const callout = document.getElementById('tut-callout');
+  const s = TUT_STEPS[step];
+  const targetEl = document.querySelector(s.target);
+  if (!targetEl) { tutDismiss(); return; }
+  document.getElementById('tut-title').textContent = s.title;
+  document.getElementById('tut-body').textContent  = s.body;
+  const isLast = step === TUT_STEPS.length - 1;
+  document.getElementById('tut-next').textContent = isLast ? 'Got it!' : 'Next →';
+  spot.style.display = 'block';
+  callout.style.display = 'block';
+  tutPosition(spot, targetEl);
+  // Position callout below the spotlight, flip above if too close to bottom
+  const r = targetEl.getBoundingClientRect();
+  const cH = 130;
+  const below = r.bottom + 16 + cH < window.innerHeight;
+  callout.style.top  = below ? (r.bottom + 16) + 'px' : (r.top - 16 - cH) + 'px';
+  callout.style.left = Math.min(r.left, window.innerWidth - 250) + 'px';
+}
+function tutDismiss() {
+  document.getElementById('tut-spot').style.display    = 'none';
+  document.getElementById('tut-callout').style.display = 'none';
+  localStorage.setItem('fm_seen', '1');
+}
+function startMatchTutorial() {
+  if (localStorage.getItem('fm_seen')) return;
+  tutStep = 0;
+  tutShow(0);
+}
+document.getElementById('tut-next').addEventListener('click', () => {
+  tutStep++;
+  if (tutStep >= TUT_STEPS.length) tutDismiss();
+  else tutShow(tutStep);
+});
+document.getElementById('tut-skip').addEventListener('click', tutDismiss);
 
 // CrazyGames SDK wrapper (no-ops when running outside CrazyGames)
 const CG = {
@@ -4030,6 +4032,7 @@ function wcStartLive(teamA,teamB,pInfo){
   document.querySelectorAll('.speed-btn').forEach(b=>b.classList.toggle('active',b.dataset.speed==='1.5'));
   document.getElementById('btn-pause').textContent='Pause';
   toastedCount=0; wc.pending=pInfo; wc.matchDone=false; wcHide(); CG.gameplayStart();
+  setTimeout(startMatchTutorial, 600);
 }
 function wcOnFulltime(){
   if(wc.matchDone||!wc.pending)return; wc.matchDone=true;
