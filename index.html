@@ -3734,23 +3734,17 @@ const CG = {
 };
 
 // Audio
-const sfxBg     = new Audio('stadium crowd background.mp3'); sfxBg.loop=true; sfxBg.volume=0.25;
 const sfxCheer1 = new Audio('stadium crowd cheer 1.mp3');   sfxCheer1.volume=0.55;
 const sfxCheer2 = new Audio('stadium crowd cheer 2.mp3');   sfxCheer2.volume=0.8;
 const sfxDice   = new Audio('dice roll.mp3');               sfxDice.volume=0.7;
-let bgStarted=false;
 let isMuted=false;
 function setMute(m){
   isMuted=m;
-  [sfxBg,sfxCheer1,sfxCheer2,sfxDice].forEach(a=>a.muted=m);
-  if(m) sfxBg.pause(); else if(bgStarted) sfxBg.play().catch(()=>{});
+  [sfxCheer1,sfxCheer2,sfxDice].forEach(a=>a.muted=m);
   const btn=document.getElementById('btn-mute');
   if(btn) btn.textContent=m?'🔇':'🔊';
 }
-function startBg(){if(bgStarted)return;bgStarted=true;if(!isMuted&&document.getElementById('wc-overlay').style.display==='none')sfxBg.play().catch(()=>{});}
 function playSfx(a){if(wc.on&&!wc.pending)return;if(isMuted)return;a.currentTime=0;a.play().catch(()=>{});}
-document.addEventListener('click',startBg,{once:true});
-document.addEventListener('keydown',startBg,{once:true});
 document.getElementById('btn-mute').addEventListener('click',()=>setMute(!isMuted));
 
 // Toast notifications for mobile
@@ -3891,8 +3885,8 @@ function wcAdvKO(){
   wc.koR++;
 }
 function wcT(i){return i>=0?WC_TEAMS[i]:{n:'TBD',f:'?',s:0};}
-function wcShow(){document.getElementById('wc-overlay').style.display='flex';sfxBg.pause();}
-function wcHide(){document.getElementById('wc-overlay').style.display='none';if(bgStarted&&!isMuted)sfxBg.play().catch(()=>{});}
+function wcShow(){document.getElementById('wc-overlay').style.display='flex';}
+function wcHide(){document.getElementById('wc-overlay').style.display='none';}
 function wcSetPhase(t){document.getElementById('wc-hdr-phase').textContent=t;}
 
 function wcRenderResume(body,footer){
