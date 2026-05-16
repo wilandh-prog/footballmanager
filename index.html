@@ -65,6 +65,7 @@ canvas { display: block; flex: 1; min-height: 0; }
 .die-wrap.jumping { animation: die-jump 0.8s cubic-bezier(0.3,0.6,0.4,1) forwards; }
 .die-wrap.die-clickable { cursor: pointer; }
 .die-wrap.die-saved { filter: drop-shadow(0 0 7px #ffd700) drop-shadow(0 0 3px #ffd700); }
+.die-wrap.die-used { opacity: 0.4; cursor: default; }
 .die-save-label { position: absolute; bottom: -18px; left: 50%; transform: translateX(-50%); font-size: 10px; color: #ffd700; font-weight: bold; letter-spacing: 1px; opacity: 0; transition: opacity 0.2s; pointer-events: none; white-space: nowrap; }
 .die-wrap.die-saved .die-save-label { opacity: 1; }
 #dice-combo { text-align: center; font-size: 13px; font-weight: bold; min-height: 20px; margin-bottom: 4px; opacity: 0; transition: opacity 0.4s, transform 0.2s; letter-spacing: 0.5px; }
@@ -433,6 +434,7 @@ const diceState = {
   selectedPlayer: 2,
   lastRoll: null,
   savedIdxs: [],
+  heldIdxs: [],  // dice held from previous roll — cannot be saved again
 };
 
 // Initialise per-player level objects
@@ -445,6 +447,7 @@ for (let i=2; i<=11; i++) {
 function resetDiceState(){
   diceState.points=0;
   diceState.savedIdxs=[];
+  diceState.heldIdxs=[];
   diceState.lastRoll=null;
   for(let i=2;i<=11;i++){const keys=PLAYER_UPG_KEYS[i-1];diceState.playerLevels[i]={};for(const k of keys)diceState.playerLevels[i][k]=0;}
   saveDiceState();
@@ -525,6 +528,7 @@ function showCombo(combo) {
 
 function handleDieClick(idx) {
   if (!diceState.lastRoll) return;
+  if (diceState.heldIdxs.includes(idx)) return;
   if (diceState.savedIdxs.includes(idx)) {
     diceState.savedIdxs = diceState.savedIdxs.filter(i => i !== idx);
   } else if (diceState.savedIdxs.length < 2) {
@@ -540,8 +544,10 @@ function updateSaveUI() {
   for (let i = 0; i < 4; i++) {
     const wrap = document.getElementById(`die${i}`);
     if (!wrap) continue;
-    wrap.classList.toggle('die-clickable', hasRoll);
+    const isHeld = diceState.heldIdxs.includes(i);
+    wrap.classList.toggle('die-clickable', hasRoll && !isHeld);
     wrap.classList.toggle('die-saved', diceState.savedIdxs.includes(i));
+    wrap.classList.toggle('die-used', isHeld);
   }
 
   const hint = document.getElementById('triple-hint');
@@ -556,8 +562,10 @@ function updateSaveUI() {
   if (max === 4) { hint.style.opacity = '0'; return; }
   if (max === 3) {
     const tv = entries[0].v;
-    const savedTriple = diceState.savedIdxs.filter(i=>roll[i]===tv).length >= 2;
-    hint.textContent = savedTriple ? `⚡ Save all 3 → try for FOUR ${tv}s! (+180)` : `THREE ${tv}s — save 2 → try for FOUR OF A KIND!`;
+    const savedCount = diceState.savedIdxs.filter(i=>roll[i]===tv).length;
+    const heldCount = diceState.heldIdxs.filter(i=>roll[i]===tv).length;
+    const alreadySaved = savedCount + heldCount;
+    hint.textContent = alreadySaved >= 2 ? `⚡ Save all 3 → try for FOUR ${tv}s! (+180)` : `THREE ${tv}s — save 2 → try for FOUR OF A KIND!`;
     hint.style.color = '#f80'; hint.style.opacity = '1'; return;
   }
   const pairs = entries.filter(e=>e.c===2);
@@ -567,8 +575,16 @@ function updateSaveUI() {
   }
   if (pairs.length === 1) {
     const pv = pairs[0].v;
-    const savedPair = diceState.savedIdxs.filter(i=>roll[i]===pv).length >= 1;
-    hint.textContent = savedPair ? `⚡ Save 2nd ${pv} → try for THREE ${pv}s! (+80)` : `Pair of ${pv}s — save one → try for THREE OF A KIND!`;
+    const savedCount = diceState.savedIdxs.filter(i=>roll[i]===pv).length;
+    const heldCount = diceState.heldIdxs.filter(i=>roll[i]===pv).length;
+    const alreadySaved = savedCount + heldCount;
+    if (alreadySaved >= 2) {
+      hint.textContent = `⚡ Both ${pv}s held — try for THREE ${pv}s! (+80)`;
+    } else if (alreadySaved === 1) {
+      hint.textContent = `⚡ Save 2nd ${pv} → try for THREE ${pv}s! (+80)`;
+    } else {
+      hint.textContent = `Pair of ${pv}s — save BOTH → try for THREE OF A KIND! (+80)`;
+    }
     hint.style.color = '#4f8'; hint.style.opacity = '1'; return;
   }
   hint.style.opacity = '0';
@@ -689,6 +705,7 @@ function rollDice() {
   }
 
   diceState.lastRoll = dice;
+  diceState.heldIdxs = prevSavedIdxs;
   diceState.savedIdxs = [];
 
   const base = dice[0]+dice[1]+dice[2]+dice[3];
